@@ -1,0 +1,1367 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>iPAS 影像處理 — 互動 + 執行整合學習頁</title>
+
+  <!-- CodeMirror -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/codemirror.min.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/theme/dracula.min.css">
+
+  <style>
+    :root {
+      --bg: #13151a;
+      --surface: #1c1f26;
+      --surface2: #22262f;
+      --border: rgba(255,255,255,0.07);
+      --ink: #e8e4dc;
+      --muted: #8a919e;
+      --accent: #e8855a;
+      --accent2: #4ec9b0;
+      --accent3: #c9a84c;
+      --red: #e06c75;
+      --radius: 14px;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      background: var(--bg);
+      color: var(--ink);
+      font-family: "Segoe UI", "Noto Sans TC", sans-serif;
+      height: 100vh;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+
+    /* ── TOPBAR ── */
+    .topbar {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      padding: 10px 20px;
+      background: var(--surface);
+      border-bottom: 1px solid var(--border);
+      flex-shrink: 0;
+      z-index: 10;
+    }
+    .topbar-title {
+      font-size: 0.9rem;
+      font-weight: 700;
+      color: var(--accent);
+      white-space: nowrap;
+    }
+    .topbar-title span { color: var(--muted); font-weight: 400; margin-left: 6px; font-size: 0.8rem; }
+
+    /* ── CONCEPT TABS ── */
+    .tabs {
+      display: flex;
+      gap: 4px;
+      overflow-x: auto;
+      scrollbar-width: none;
+      padding: 0 4px;
+    }
+    .tabs::-webkit-scrollbar { display: none; }
+    .tab {
+      padding: 6px 14px;
+      border-radius: 8px;
+      border: 1px solid transparent;
+      background: transparent;
+      color: var(--muted);
+      font-size: 0.82rem;
+      font-weight: 600;
+      cursor: pointer;
+      white-space: nowrap;
+      transition: all 0.15s;
+    }
+    .tab:hover { background: rgba(255,255,255,0.06); color: var(--ink); }
+    .tab.active {
+      background: rgba(232,133,90,0.15);
+      border-color: rgba(232,133,90,0.4);
+      color: var(--accent);
+    }
+
+    /* ── PYTHON STATUS ── */
+    .py-status {
+      margin-left: auto;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 0.8rem;
+      color: var(--muted);
+      white-space: nowrap;
+    }
+    .py-dot {
+      width: 8px; height: 8px;
+      border-radius: 50%;
+      background: #555;
+      transition: background 0.3s;
+    }
+    .py-dot.loading { background: var(--accent3); animation: pulse 1s infinite; }
+    .py-dot.ready   { background: var(--accent2); }
+    .py-dot.error   { background: var(--red); }
+    @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.4} }
+
+    /* ── MAIN SPLIT ── */
+    .main {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      flex: 1;
+      overflow: hidden;
+    }
+
+    /* ── LEFT PANEL (Interactive) ── */
+    .left-panel {
+      display: flex;
+      flex-direction: column;
+      border-right: 1px solid var(--border);
+      overflow: hidden;
+    }
+    .panel-header {
+      padding: 10px 16px;
+      font-size: 0.78rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: var(--muted);
+      border-bottom: 1px solid var(--border);
+      background: var(--surface2);
+      flex-shrink: 0;
+    }
+    .lab-area {
+      flex: 1;
+      overflow-y: auto;
+      padding: 16px;
+      scrollbar-width: thin;
+      scrollbar-color: var(--border) transparent;
+    }
+
+    /* Lab widgets */
+    .lab-canvas-wrap {
+      border-radius: var(--radius);
+      overflow: hidden;
+      border: 1px solid var(--border);
+      background: #0d0f13;
+      margin-bottom: 14px;
+    }
+    canvas { display: block; width: 100%; }
+
+    .controls { display: grid; gap: 10px; }
+    .ctrl-row {
+      display: grid;
+      grid-template-columns: 110px 1fr 36px;
+      align-items: center;
+      gap: 8px;
+    }
+    .ctrl-label { font-size: 0.8rem; color: var(--muted); font-weight: 600; }
+    input[type=range] {
+      width: 100%;
+      accent-color: var(--accent);
+      cursor: pointer;
+    }
+    .ctrl-val {
+      font-size: 0.8rem;
+      font-family: monospace;
+      color: var(--accent2);
+      text-align: right;
+    }
+
+    .chip-row { display: flex; flex-wrap: wrap; gap: 6px; margin: 10px 0; }
+    .chip {
+      padding: 5px 10px;
+      border-radius: 6px;
+      border: 1px solid var(--border);
+      background: var(--surface2);
+      color: var(--muted);
+      font-size: 0.78rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.12s;
+    }
+    .chip:hover { border-color: rgba(232,133,90,0.35); color: var(--ink); }
+    .chip.active { background: rgba(232,133,90,0.15); border-color: rgba(232,133,90,0.5); color: var(--accent); }
+
+    .info-box {
+      padding: 10px 12px;
+      border-radius: 10px;
+      background: rgba(78,201,176,0.07);
+      border: 1px solid rgba(78,201,176,0.18);
+      font-size: 0.8rem;
+      color: var(--muted);
+      line-height: 1.55;
+      margin-top: 10px;
+    }
+    .info-box strong { color: var(--accent2); }
+
+    /* ── RIGHT PANEL (Code) ── */
+    .right-panel {
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+    .editor-header {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 8px 14px;
+      background: var(--surface2);
+      border-bottom: 1px solid var(--border);
+      flex-shrink: 0;
+    }
+    .editor-title { font-size: 0.78rem; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: 0.08em; }
+
+    .run-btn {
+      margin-left: auto;
+      padding: 6px 18px;
+      border-radius: 8px;
+      background: var(--accent);
+      color: #fff;
+      font-weight: 700;
+      font-size: 0.82rem;
+      border: none;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      transition: opacity 0.15s;
+    }
+    .run-btn:disabled { opacity: 0.45; cursor: not-allowed; }
+    .run-btn:not(:disabled):hover { opacity: 0.85; }
+    .run-btn .spinner {
+      width: 12px; height: 12px;
+      border: 2px solid rgba(255,255,255,0.3);
+      border-top-color: #fff;
+      border-radius: 50%;
+      animation: spin 0.6s linear infinite;
+      display: none;
+    }
+    .run-btn.running .spinner { display: block; }
+    .run-btn.running .run-icon { display: none; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    .reset-btn {
+      padding: 6px 12px;
+      border-radius: 8px;
+      background: transparent;
+      color: var(--muted);
+      font-size: 0.78rem;
+      font-weight: 600;
+      border: 1px solid var(--border);
+      cursor: pointer;
+    }
+    .reset-btn:hover { color: var(--ink); border-color: rgba(255,255,255,0.2); }
+
+    .editor-wrap {
+      flex: 1;
+      overflow: hidden;
+      min-height: 0;
+    }
+    .CodeMirror {
+      height: 100% !important;
+      font-family: "Cascadia Code", "Fira Code", Consolas, monospace !important;
+      font-size: 13px !important;
+      line-height: 1.6 !important;
+    }
+    .CodeMirror-scroll { min-height: unset !important; }
+
+    /* ── OUTPUT PANEL ── */
+    .output-panel {
+      flex-shrink: 0;
+      height: 240px;
+      border-top: 1px solid var(--border);
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+    .output-header {
+      padding: 6px 14px;
+      font-size: 0.75rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: var(--muted);
+      background: var(--surface2);
+      border-bottom: 1px solid var(--border);
+      flex-shrink: 0;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .output-clear {
+      margin-left: auto;
+      background: transparent;
+      border: none;
+      color: var(--muted);
+      font-size: 0.75rem;
+      cursor: pointer;
+    }
+    .output-clear:hover { color: var(--ink); }
+
+    .output-body {
+      flex: 1;
+      overflow-y: auto;
+      overflow-x: auto;
+      display: flex;
+      gap: 12px;
+      padding: 10px 14px;
+      align-items: flex-start;
+      scrollbar-width: thin;
+      scrollbar-color: var(--border) transparent;
+    }
+
+    .output-text {
+      min-width: 180px;
+      flex-shrink: 0;
+      font-family: "Cascadia Code", Consolas, monospace;
+      font-size: 0.78rem;
+      color: var(--accent2);
+      white-space: pre-wrap;
+      line-height: 1.6;
+    }
+    .output-text .err { color: var(--red); }
+
+    .output-img {
+      flex-shrink: 0;
+      border-radius: 8px;
+      overflow: hidden;
+      border: 1px solid var(--border);
+    }
+    .output-img img { display: block; height: 200px; width: auto; max-width: 600px; }
+
+    .output-placeholder {
+      color: var(--muted);
+      font-size: 0.82rem;
+      align-self: center;
+      margin: 0 auto;
+      text-align: center;
+    }
+    .output-placeholder span { display: block; font-size: 1.6rem; margin-bottom: 6px; }
+
+    /* Scrollbar */
+    ::-webkit-scrollbar { width: 6px; height: 6px; }
+    ::-webkit-scrollbar-track { background: transparent; }
+    ::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.1); border-radius: 3px; }
+  </style>
+</head>
+<body>
+
+<!-- ── TOPBAR ── -->
+<div class="topbar">
+  <div class="topbar-title">
+    🔬 iPAS 影像處理
+    <span>互動視覺 × Python 執行</span>
+  </div>
+
+  <div class="tabs" id="tabs"></div>
+
+  <div class="py-status">
+    <div class="py-dot loading" id="pyDot"></div>
+    <span id="pyLabel">載入 Python…</span>
+  </div>
+</div>
+
+<!-- ── MAIN ── -->
+<div class="main">
+
+  <!-- LEFT: Interactive Lab -->
+  <div class="left-panel">
+    <div class="panel-header">互動實驗室</div>
+    <div class="lab-area" id="labArea"></div>
+  </div>
+
+  <!-- RIGHT: Code + Output -->
+  <div class="right-panel">
+    <div class="editor-header">
+      <span class="editor-title">Python 編輯器</span>
+      <button class="reset-btn" id="resetBtn" onclick="resetCode()">↺ 還原</button>
+      <button class="run-btn" id="runBtn" onclick="runCode()" disabled>
+        <span class="run-icon">▶ 執行</span>
+        <div class="spinner"></div>
+        <span class="run-label" style="display:none">執行中…</span>
+      </button>
+    </div>
+    <div class="editor-wrap">
+      <textarea id="codeEditor"></textarea>
+    </div>
+    <div class="output-panel">
+      <div class="output-header">
+        輸出
+        <button class="output-clear" onclick="clearOutput()">清除</button>
+      </div>
+      <div class="output-body" id="outputBody">
+        <div class="output-placeholder">
+          <span>▶</span>點擊「執行」跑 Python，結果顯示在這裡
+        </div>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<!-- CodeMirror JS -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/codemirror.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/mode/python/python.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/addon/edit/closebrackets.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/addon/comment/comment.min.js"></script>
+
+<script>
+// ══════════════════════════════════════════════
+// CONCEPT DATA
+// ══════════════════════════════════════════════
+const concepts = [
+  {
+    id: "rgb",
+    label: "RGB + 像素",
+    info: "<strong>img.shape = (H, W, C)</strong>，dtype=uint8，值域 0~255。<br>cv2 讀取是 <strong>BGR</strong>，PIL 是 <strong>RGB</strong>，混用必轉換。",
+    code: `import numpy as np
+import matplotlib.pyplot as plt
+
+# ── 建立合成彩色測試影像 ──
+img = np.zeros((200, 320, 3), dtype=np.uint8)
+
+# 畫三個色塊
+img[10:100, 10:130]  = [200,  80,  50]   # 橘紅
+img[80:190, 80:230]  = [ 50, 150, 200]   # 藍
+img[40:160, 190:310] = [ 80, 200, 100]   # 綠
+
+# ── 觀察陣列結構 ──
+print("img.shape :", img.shape)   # (H, W, 3)
+print("img.dtype :", img.dtype)   # uint8
+print("像素[50,50]:", img[50, 50]) # [R, G, B]
+print("值域      :", img.min(), "~", img.max())
+
+# ── 分離 RGB 通道 ──
+fig, axes = plt.subplots(1, 4, figsize=(14, 3))
+axes[0].imshow(img)
+axes[0].set_title("原圖 (RGB)")
+
+for i, (ch, cmap) in enumerate(zip("RGB", ["Reds","Greens","Blues"])):
+    axes[i+1].imshow(img[:,:,i], cmap=cmap, vmin=0, vmax=255)
+    axes[i+1].set_title(f"{ch} 通道")
+
+for ax in axes: ax.axis("off")
+plt.suptitle("img[:,:,0]=R  img[:,:,1]=G  img[:,:,2]=B", fontsize=10, color="gray")
+plt.tight_layout()
+plt.show()
+`,
+    buildLab: buildRgbLab
+  },
+  {
+    id: "color",
+    label: "色彩空間",
+    info: "<strong>cvtColor</strong> 只改表示方式，不改內容。<br>Gray 灰階公式：<strong>0.299R + 0.587G + 0.114B</strong>（G 最高因人眼最敏感）。",
+    code: `import numpy as np
+import matplotlib.pyplot as plt
+from matplotlib.colors import hsv_to_rgb
+
+# ── 建立色彩豐富的合成影像 ──
+h_vals = np.linspace(0, 1, 320)
+s_vals = np.ones((200, 320))
+v_vals = np.linspace(0.4, 1.0, 200)[:,None] * np.ones((200,320))
+hsv_arr = np.stack([h_vals * np.ones((200,320)), s_vals, v_vals], axis=-1)
+img_rgb = (hsv_to_rgb(hsv_arr) * 255).astype(np.uint8)
+
+# ── 三種色彩空間 ──
+# 灰階（加權公式）
+gray = (0.299*img_rgb[:,:,0] +
+        0.587*img_rgb[:,:,1] +
+        0.114*img_rgb[:,:,2]).astype(np.uint8)
+
+# 模擬 HSV 各通道
+h_ch = (img_rgb[:,:,0].astype(float)/255*360)  # 色相
+
+print("img_rgb.shape:", img_rgb.shape)
+print("gray.shape   :", gray.shape)
+print("gray 值域    :", gray.min(), "~", gray.max())
+print()
+print("# cv2 對應寫法：")
+print("gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)")
+print("hsv  = cv2.cvtColor(img, cv2.COLOR_BGR2HSV)")
+
+fig, axes = plt.subplots(1, 3, figsize=(13, 4))
+axes[0].imshow(img_rgb);          axes[0].set_title("RGB")
+axes[1].imshow(gray, cmap="gray");axes[1].set_title("Gray (0.299R+0.587G+0.114B)")
+axes[2].imshow(hsv_arr);          axes[2].set_title("HSV 色彩空間")
+for ax in axes: ax.axis("off")
+plt.tight_layout(); plt.show()
+`,
+    buildLab: buildColorLab
+  },
+  {
+    id: "filter",
+    label: "模糊 + Canny",
+    info: "<strong>Canny</strong> 需設定雙閾值（高頻考點）：<br>threshold1=低門檻、threshold2=高門檻。<br>流程：降噪 → Sobel → 非極大值抑制 → 雙閾值。",
+    code: `import numpy as np
+import matplotlib.pyplot as plt
+from scipy import ndimage
+
+# ── 建立含雜訊的合成影像 ──
+np.random.seed(0)
+img = np.zeros((200, 300), dtype=float)
+y, x = np.ogrid[:200, :300]
+img[(x-100)**2 + (y-80)**2 < 55**2]  = 180
+img[100:170, 150:270] = 130
+img[20:70,   180:280] = 220
+img += np.random.normal(0, 12, img.shape)
+img = np.clip(img, 0, 255)
+
+# ── 高斯模糊 ──
+blurred = ndimage.gaussian_filter(img, sigma=2.5)
+
+# ── 銳化（Unsharp Masking）──
+sharpened = np.clip(img + 1.5*(img - ndimage.gaussian_filter(img, sigma=3)), 0, 255)
+
+# ── Sobel 邊緣（模擬 Canny）──
+Gx = ndimage.convolve(img, [[-1,0,1],[-2,0,2],[-1,0,1]])
+Gy = ndimage.convolve(img, [[-1,-2,-1],[0,0,0],[1,2,1]])
+magnitude = np.sqrt(Gx**2 + Gy**2)
+# 雙閾值
+low, high = 40, 100
+canny_sim = np.zeros_like(magnitude)
+canny_sim[magnitude > high] = 255                     # 強邊緣
+canny_sim[(magnitude > low) & (magnitude <= high)] = 128  # 弱邊緣
+
+print("低閾值(low) :", low)
+print("高閾值(high):", high)
+print("強邊緣像素數:", (magnitude > high).sum())
+print()
+print("# cv2 對應寫法：")
+print("blur  = cv2.GaussianBlur(img, (5,5), 0)")
+print("edges = cv2.Canny(blur, 50, 150)")
+
+fig, axes = plt.subplots(1, 4, figsize=(16, 4))
+for ax, d, t in zip(axes,
+    [img, blurred, sharpened, canny_sim],
+    ["原圖（含雜訊）","高斯模糊","銳化","Canny（模擬）"]):
+    ax.imshow(d, cmap="gray"); ax.set_title(t); ax.axis("off")
+plt.tight_layout(); plt.show()
+`,
+    buildLab: buildFilterLab
+  },
+  {
+    id: "hist",
+    label: "直方圖均衡化",
+    info: "<strong>equalizeHist</strong> 重新分配亮度，讓低對比影像細節更明顯。<br>直方圖：x 軸=亮度值(0~255)，y 軸=像素數量。",
+    code: `import numpy as np
+import matplotlib.pyplot as plt
+
+# ── 建立低對比度合成影像 ──
+np.random.seed(1)
+y, x = np.ogrid[:200, :300]
+# 把亮度集中在 80~160（模擬霧霾場景）
+img = (80 + 40*np.sin(x/25) * np.cos(y/20) +
+          20*np.sin(x/10 + y/15)).astype(float)
+img = np.clip(img + np.random.normal(0, 5, img.shape), 0, 255).astype(np.uint8)
+
+# ── 手動實作直方圖均衡化 ──
+hist, bins = np.histogram(img.ravel(), 256, (0, 256))
+cdf = hist.cumsum()
+cdf_min = cdf[cdf > 0].min()
+total = img.size
+# 均衡化公式
+lut = np.round((cdf - cdf_min) / (total - cdf_min) * 255).astype(np.uint8)
+equalized = lut[img]
+
+print("原圖亮度統計：")
+print(f"  均值={img.mean():.1f}  標準差={img.std():.1f}  min={img.min()}  max={img.max()}")
+print()
+print("均衡化後亮度統計：")
+print(f"  均值={equalized.mean():.1f}  標準差={equalized.std():.1f}  min={equalized.min()}  max={equalized.max()}")
+print()
+print("# cv2 對應寫法：")
+print("equalized = cv2.equalizeHist(gray_img)")
+
+fig, axes = plt.subplots(2, 2, figsize=(11, 7))
+axes[0,0].imshow(img, cmap="gray", vmin=0, vmax=255)
+axes[0,0].set_title("原圖（低對比）"); axes[0,0].axis("off")
+axes[0,1].bar(range(256), hist, width=1, color="steelblue", alpha=0.8)
+axes[0,1].set_title("原始直方圖（亮度集中）"); axes[0,1].set_xlim(0,255)
+axes[1,0].imshow(equalized, cmap="gray", vmin=0, vmax=255)
+axes[1,0].set_title("均衡化後（對比增強）"); axes[1,0].axis("off")
+hist2, _ = np.histogram(equalized.ravel(), 256, (0,256))
+axes[1,1].bar(range(256), hist2, width=1, color="tomato", alpha=0.8)
+axes[1,1].set_title("均衡化直方圖（分布均勻）"); axes[1,1].set_xlim(0,255)
+plt.tight_layout(); plt.show()
+`,
+    buildLab: buildHistLab
+  },
+  {
+    id: "thresh",
+    label: "閾值方法",
+    info: "<strong>Binary</strong>：手動設門檻<br><strong>Otsu</strong>：自動找最佳門檻（類間變異最大）★<br><strong>Adaptive</strong>：每個局部區域各自計算，適合光源不均",
+    code: `import numpy as np
+import matplotlib.pyplot as plt
+from scipy import ndimage
+
+# ── 建立帶漸層光源的合成影像 ──
+np.random.seed(2)
+y, x = np.ogrid[:200, :300]
+bg = (x/300*80 + y/200*50).astype(np.uint8)   # 漸層背景
+img = bg.copy()
+img[(x-80)**2  + (y-80)**2  < 40**2] = 200    # 圓
+img[100:160, 80:200] = 175                      # 矩形
+img[30:90,   200:280] = 160                     # 另一塊
+img = np.clip(img.astype(float) + np.random.normal(0,8,img.shape), 0, 255).astype(np.uint8)
+
+# ── 1. 手動 Binary（T=127）──
+binary_manual = (img > 127).astype(np.uint8) * 255
+
+# ── 2. Otsu 自動閾值 ──
+hist, _ = np.histogram(img.ravel(), 256, (0,256))
+total = img.size
+sum_all = np.dot(np.arange(256), hist)
+sumB = wB = max_var = best_t = 0
+for t in range(256):
+    wB += hist[t]; wF = total - wB
+    if wB == 0 or wF == 0: continue
+    sumB += t * hist[t]
+    mB, mF = sumB/wB, (sum_all-sumB)/wF
+    var = wB * wF * (mB-mF)**2
+    if var > max_var: max_var, best_t = var, t
+binary_otsu = (img > best_t).astype(np.uint8) * 255
+
+# ── 3. Adaptive（局部平均）──
+local_mean = ndimage.uniform_filter(img.astype(float), size=41)
+binary_adapt = (img.astype(float) > local_mean - 8).astype(np.uint8) * 255
+
+print(f"手動閾值 T     = 127")
+print(f"Otsu 自動閾值  = {best_t}  ← 自動計算！")
+print(f"Adaptive       = 每個局部區域各自計算")
+print()
+print("# cv2 對應寫法：")
+print("_, b1 = cv2.threshold(img, 127, 255, cv2.THRESH_BINARY)")
+print("_, b2 = cv2.threshold(img, 0, 255, cv2.THRESH_BINARY+cv2.THRESH_OTSU)")
+print("b3 = cv2.adaptiveThreshold(img,255,cv2.ADAPTIVE_THRESH_GAUSSIAN_C,cv2.THRESH_BINARY,41,8)")
+
+fig, axes = plt.subplots(1, 4, figsize=(16, 4))
+for ax, d, t in zip(axes,
+    [img, binary_manual, binary_otsu, binary_adapt],
+    ["原圖", "Binary (T=127)\n手動", f"Otsu (T={best_t})\n自動", "Adaptive\n局部自適應"]):
+    ax.imshow(d, cmap="gray"); ax.set_title(t); ax.axis("off")
+plt.tight_layout(); plt.show()
+`,
+    buildLab: buildThreshLab
+  },
+  {
+    id: "morph",
+    label: "形態學",
+    info: "<strong>開運算</strong> = 侵蝕→膨脹（去小白點）<br><strong>閉運算</strong> = 膨脹→侵蝕（補小黑洞）<br>結構元素大小影響操作範圍。",
+    code: `import numpy as np
+import matplotlib.pyplot as plt
+from scipy.ndimage import binary_dilation, binary_erosion, label
+
+# ── 建立帶雜訊的二值影像 ──
+np.random.seed(3)
+binary = np.zeros((150, 220), dtype=bool)
+y, x = np.ogrid[:150, :220]
+binary[(x-60)**2 + (y-55)**2 < 35**2] = True   # 圓
+binary[80:130, 100:200] = True                   # 矩形
+# 在前景加小洞
+for _ in range(60):
+    py, px = np.random.randint(0,150), np.random.randint(0,220)
+    if binary[py,px]: binary[py,px] = False
+# 在背景加小白點
+noise = (np.random.random((150,220)) > 0.97)
+binary_noisy = binary | noise
+
+struct = np.ones((5,5), dtype=bool)   # 結構元素
+dilated = binary_dilation(binary_noisy, struct)   # 膨脹
+eroded  = binary_erosion(binary_noisy,  struct)   # 侵蝕
+opened  = binary_dilation(eroded,   struct)        # 開=侵蝕→膨脹
+closed  = binary_erosion(dilated,   struct)        # 閉=膨脹→侵蝕
+
+# 計算連通區域
+n_orig  = label(binary_noisy)[1]
+n_open  = label(opened)[1]
+print(f"原始（含雜訊）連通區域數: {n_orig}")
+print(f"開運算後連通區域數      : {n_open}  ← 小白點被去掉了")
+print()
+print("# cv2 對應寫法：")
+print("k = cv2.getStructuringElement(cv2.MORPH_RECT,(5,5))")
+print("opened = cv2.morphologyEx(binary, cv2.MORPH_OPEN,  k)")
+print("closed = cv2.morphologyEx(binary, cv2.MORPH_CLOSE, k)")
+
+fig, axes = plt.subplots(1, 5, figsize=(18, 4))
+for ax, d, t in zip(axes,
+    [binary_noisy, dilated, eroded, opened, closed],
+    ["原始（含雜訊）","膨脹 Dilate","侵蝕 Erode","開運算\n侵蝕→膨脹","閉運算\n膨脹→侵蝕"]):
+    ax.imshow(d, cmap="gray"); ax.set_title(t, fontsize=10); ax.axis("off")
+plt.tight_layout(); plt.show()
+`,
+    buildLab: buildMorphLab
+  },
+  {
+    id: "cnn",
+    label: "CNN 前處理",
+    info: "<strong>CNN 標準流程：</strong><br>imread(BGR) → cvtColor(RGB) → resize(224×224) → ÷255 → transpose(HWC→CHW) → expand_dims(batch)",
+    code: `import numpy as np
+import matplotlib.pyplot as plt
+from scipy.ndimage import zoom
+
+# ── 建立模擬彩色照片（640×480 BGR）──
+np.random.seed(0)
+h, w = 480, 640
+img_bgr = np.zeros((h, w, 3), dtype=np.uint8)
+y, x = np.ogrid[:h, :w]
+img_bgr[:,:,0] = np.clip(np.sin(x/50)*100 + 128, 0, 255)
+img_bgr[:,:,1] = np.clip(np.cos(y/40)*80  + 150, 0, 255)
+img_bgr[:,:,2] = np.clip(np.sin((x+y)/60)*90 + 100, 0, 255)
+
+print("=" * 40)
+print("CNN 前處理步驟追蹤")
+print("=" * 40)
+
+# Step 1: BGR → RGB
+img_rgb = img_bgr[:,:,::-1].copy()
+print(f"[0] 原始 BGR      : shape={img_bgr.shape}, dtype={img_bgr.dtype}")
+print(f"[1] BGR→RGB       : 通道順序 B,G,R → R,G,B")
+
+# Step 2: Resize 224×224
+scale_h, scale_w = 224/h, 224/w
+img_224 = zoom(img_rgb, (scale_h, scale_w, 1), order=1).astype(np.uint8)
+print(f"[2] resize 224×224: {img_rgb.shape} → {img_224.shape}")
+
+# Step 3: 正規化 / 255
+img_norm = img_224.astype(np.float32) / 255.0
+print(f"[3] ÷255 正規化   : dtype={img_norm.dtype}, 範圍=[{img_norm.min():.2f},{img_norm.max():.2f}]")
+
+# Step 4: HWC → CHW（PyTorch 格式）
+img_chw = np.transpose(img_norm, (2, 0, 1))
+print(f"[4] HWC→CHW       : {img_norm.shape} → {img_chw.shape}")
+
+# Step 5: 加 batch 維度
+img_batch = img_chw[np.newaxis, ...]
+print(f"[5] 加 batch      : {img_chw.shape} → {img_batch.shape}")
+print()
+print("# 完整 cv2 寫法：")
+print("img = cv2.imread('f.jpg')")
+print("img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)")
+print("img = cv2.resize(img, (224,224), interpolation=cv2.INTER_LINEAR)")
+print("img = img.astype(np.float32) / 255.0")
+print("img = np.transpose(img, (2,0,1))[np.newaxis]")
+print(f"# → shape: {img_batch.shape}")
+
+fig, axes = plt.subplots(1, 3, figsize=(12, 4))
+axes[0].imshow(img_rgb);   axes[0].set_title(f"原始 RGB\n{img_rgb.shape}")
+axes[1].imshow(img_224);   axes[1].set_title(f"resize 224×224\n{img_224.shape}")
+axes[2].imshow(img_norm);  axes[2].set_title(f"正規化後 [0,1]\n{img_norm.shape}")
+for ax in axes: ax.axis("off")
+plt.tight_layout(); plt.show()
+`,
+    buildLab: buildCnnLab
+  }
+];
+
+// ══════════════════════════════════════════════
+// CANVAS LAB BUILDERS
+// ══════════════════════════════════════════════
+
+function mkCanvas(id, w, h) {
+  const c = document.createElement("canvas");
+  c.id = id; c.width = w; c.height = h;
+  return c;
+}
+
+function buildBaseGray(w, h) {
+  const id = new ImageData(w, h);
+  for (let y=0; y<h; y++) for (let x=0; x<w; x++) {
+    const i = (y*w+x)*4;
+    const dx=x-w*0.35, dy=y-h*0.45;
+    let v = 210 - Math.sqrt(dx*dx+dy*dy)*1.2;
+    if (x>w*0.55&&x<w*0.85&&y>h*0.2&&y<h*0.75) v=80;
+    if ((x-w*0.25)**2+(y-h*0.28)**2<(w*0.12)**2) v=35;
+    if (Math.abs(y-(0.7*x-15))<6) v=240;
+    v=Math.max(18,Math.min(255,v));
+    id.data[i]=v; id.data[i+1]=v; id.data[i+2]=v; id.data[i+3]=255;
+  }
+  return id;
+}
+
+function hsl2rgb(h,s,l){
+  h=((h%360)+360)%360; s/=100; l/=100;
+  const c=(1-Math.abs(2*l-1))*s, x=c*(1-Math.abs((h/60)%2-1)), m=l-c/2;
+  let r=0,g=0,b=0;
+  if(h<60){r=c;g=x;}else if(h<120){r=x;g=c;}else if(h<180){g=c;b=x;}
+  else if(h<240){g=x;b=c;}else if(h<300){r=x;b=c;}else{r=c;b=x;}
+  return [Math.round((r+m)*255),Math.round((g+m)*255),Math.round((b+m)*255)];
+}
+
+function convGray(d,w,h,k,fac=1){
+  const o=new Uint8ClampedArray(d.length), s=Math.sqrt(k.length), half=Math.floor(s/2);
+  for(let y=0;y<h;y++) for(let x=0;x<w;x++){
+    let sum=0;
+    for(let ky=0;ky<s;ky++) for(let kx=0;kx<s;kx++){
+      const px=Math.min(w-1,Math.max(0,x+kx-half)), py=Math.min(h-1,Math.max(0,y+ky-half));
+      sum+=d[(py*w+px)*4]*k[ky*s+kx];
+    }
+    const v=Math.max(0,Math.min(255,sum/fac)); const i=(y*w+x)*4;
+    o[i]=v;o[i+1]=v;o[i+2]=v;o[i+3]=255;
+  }
+  return o;
+}
+
+function buildRgbLab(wrap) {
+  wrap.innerHTML = "";
+  const canvasWrap = document.createElement("div"); canvasWrap.className="lab-canvas-wrap";
+  const canvas = mkCanvas("rgbC", 400, 200); canvasWrap.appendChild(canvas); wrap.appendChild(canvasWrap);
+  const ctx = canvas.getContext("2d");
+
+  const controls = document.createElement("div"); controls.className="controls"; wrap.appendChild(controls);
+
+  function makeRow(label, id, min, max, val) {
+    const row = document.createElement("div"); row.className="ctrl-row";
+    row.innerHTML = `<span class="ctrl-label">${label}</span><input type="range" id="${id}" min="${min}" max="${max}" value="${val}"><span class="ctrl-val" id="${id}Val">${val}</span>`;
+    controls.appendChild(row); return row;
+  }
+  makeRow("紅 R", "lr", 0, 255, 180);
+  makeRow("綠 G", "lg", 0, 255, 120);
+  makeRow("藍 B", "lb", 0, 255, 90);
+  makeRow("像素大小", "lpx", 4, 40, 16);
+
+  function draw() {
+    const r=+lr.value,g=+lg.value,b=+lb.value,sz=+lpx.value;
+    document.getElementById("lrVal").textContent=r;
+    document.getElementById("lgVal").textContent=g;
+    document.getElementById("lbVal").textContent=b;
+    document.getElementById("lpxVal").textContent=sz;
+    ctx.clearRect(0,0,canvas.width,canvas.height);
+    for(let y=0;y<canvas.height;y+=sz) for(let x=0;x<canvas.width;x+=sz){
+      const mr=Math.min(255,r+Math.round((x/canvas.width)*55));
+      const mg=Math.min(255,g+Math.round((y/canvas.height)*65));
+      const mb=Math.min(255,b+Math.round(((x+y)/(canvas.width+canvas.height))*70));
+      ctx.fillStyle=`rgb(${mr},${mg},${mb})`; ctx.fillRect(x,y,sz,sz);
+    }
+    ctx.fillStyle="rgba(0,0,0,0.55)"; ctx.fillRect(8,8,160,62);
+    ctx.fillStyle="#e8e4dc"; ctx.font="bold 13px monospace"; ctx.fillText(`R:${r}  G:${g}  B:${b}`,16,30);
+    ctx.fillStyle="#4ec9b0"; ctx.font="12px monospace"; ctx.fillText(`pixel_size = ${sz}px`,16,50); ctx.fillText(`shape = (H, W, 3)`,16,66);
+  }
+  ["lr","lg","lb","lpx"].forEach(id=>document.getElementById(id).addEventListener("input",draw));
+  draw();
+
+  addInfo(wrap, controls);
+}
+
+function buildColorLab(wrap) {
+  wrap.innerHTML = "";
+  const cw = document.createElement("div"); cw.className="lab-canvas-wrap";
+  const canvas = mkCanvas("colC", 400, 200); cw.appendChild(canvas); wrap.appendChild(cw);
+  const ctx = canvas.getContext("2d");
+
+  const chipRow = document.createElement("div"); chipRow.className="chip-row"; wrap.appendChild(chipRow);
+  const chips = ["RGB","Gray","HSV"].map(m=>{
+    const b=document.createElement("button"); b.className="chip"; b.textContent=m; b.dataset.m=m;
+    chipRow.appendChild(b); return b;
+  });
+  chips[0].classList.add("active");
+  let mode="RGB";
+
+  chips.forEach(b=>b.addEventListener("click",()=>{
+    chips.forEach(c=>c.classList.remove("active")); b.classList.add("active"); mode=b.dataset.m; draw();
+  }));
+
+  function draw() {
+    const w=canvas.width, h=canvas.height;
+    ctx.clearRect(0,0,w,h);
+    const cell=16;
+    for(let y=0;y<h;y+=cell) for(let x=0;x<w;x+=cell){
+      const hue=(x/w)*280+(y/h)*60;
+      const light=32+(y/h)*36;
+      const [r,g,b]=hsl2rgb(hue,70,light);
+      if(mode==="RGB") ctx.fillStyle=`rgb(${r},${g},${b})`;
+      else if(mode==="Gray"){const gv=Math.round(0.299*r+0.587*g+0.114*b);ctx.fillStyle=`rgb(${gv},${gv},${gv})`;}
+      else { // HSV bands
+        const band=Math.floor(y/(h/3));
+        if(band===0){const [r2,g2,b2]=hsl2rgb(hue,100,50);ctx.fillStyle=`rgb(${r2},${g2},${b2})`;}
+        else if(band===1){const sv=Math.round((x/w)*255);ctx.fillStyle=`rgb(${sv},${sv},${sv})`;}
+        else{const vv=Math.round(0.3+0.6*(x/w)*255);ctx.fillStyle=`rgb(${vv},${vv},${vv})`;}
+      }
+      ctx.fillRect(x,y,cell,cell);
+    }
+    ctx.fillStyle="rgba(0,0,0,0.6)"; ctx.fillRect(8,8,180,50);
+    ctx.fillStyle="#e8e4dc"; ctx.font="bold 14px monospace"; ctx.fillText(`模式：${mode}`,16,32);
+    ctx.fillStyle="#4ec9b0"; ctx.font="11px monospace";
+    if(mode==="Gray") ctx.fillText("0.299R + 0.587G + 0.114B",16,50);
+    else ctx.fillText(mode==="HSV"?"H / S / V 三通道":"cv2.COLOR_BGR2RGB",16,50);
+  }
+  draw();
+  addInfo(wrap, chipRow);
+}
+
+function buildFilterLab(wrap) {
+  wrap.innerHTML = "";
+  const cw = document.createElement("div"); cw.className="lab-canvas-wrap";
+  const canvas = mkCanvas("filC", 400, 200); cw.appendChild(canvas); wrap.appendChild(cw);
+  const ctx = canvas.getContext("2d");
+
+  const chipRow = document.createElement("div"); chipRow.className="chip-row"; wrap.appendChild(chipRow);
+  const modes = [{k:"original",l:"原圖"},{k:"blur",l:"模糊"},{k:"sharpen",l:"銳化"},{k:"edge",l:"Laplacian"},{k:"canny",l:"Canny"}];
+  const chips = modes.map(m=>{
+    const b=document.createElement("button"); b.className="chip"; b.textContent=m.l; b.dataset.k=m.k;
+    chipRow.appendChild(b); return b;
+  });
+  chips[0].classList.add("active");
+  let kern="original";
+
+  chips.forEach(b=>b.addEventListener("click",()=>{
+    chips.forEach(c=>c.classList.remove("active")); b.classList.add("active"); kern=b.dataset.k; draw();
+  }));
+
+  const controls = document.createElement("div"); controls.className="controls"; wrap.appendChild(controls);
+  const thRow = document.createElement("div"); thRow.className="ctrl-row";
+  thRow.innerHTML=`<span class="ctrl-label">低閾值</span><input type="range" id="fth" min="10" max="200" value="80"><span class="ctrl-val" id="fthV">80</span>`;
+  controls.appendChild(thRow);
+  const hiRow = document.createElement("div"); hiRow.className="ctrl-row";
+  hiRow.innerHTML=`<span class="ctrl-label">高閾值</span><input type="range" id="fhi" min="50" max="250" value="160"><span class="ctrl-val" id="fhiV">160</span>`;
+  controls.appendChild(hiRow);
+  document.getElementById("fth").addEventListener("input",draw);
+  document.getElementById("fhi").addEventListener("input",draw);
+
+  function draw() {
+    const base = buildBaseGray(canvas.width, canvas.height);
+    let data = base.data;
+    const w=canvas.width, h=canvas.height;
+    const low=+document.getElementById("fth").value, hi=+document.getElementById("fhi").value;
+    document.getElementById("fthV").textContent=low; document.getElementById("fhiV").textContent=hi;
+
+    if(kern==="blur") data=convGray(data,w,h,[1,2,1,2,4,2,1,2,1],16);
+    else if(kern==="sharpen") data=convGray(data,w,h,[0,-1,0,-1,5,-1,0,-1,0]);
+    else if(kern==="edge"){
+      const e=convGray(data,w,h,[-1,-1,-1,-1,8,-1,-1,-1,-1]);
+      for(let i=0;i<e.length;i+=4){const v=e[i]>low?255:20;e[i]=v;e[i+1]=v;e[i+2]=v;} data=e;
+    } else if(kern==="canny") {
+      const bl=convGray(data,w,h,[1,2,1,2,4,2,1,2,1],16);
+      const Gx=convGray(bl,w,h,[-1,0,1,-2,0,2,-1,0,1]);
+      const Gy=convGray(bl,w,h,[-1,-2,-1,0,0,0,1,2,1]);
+      const out=new Uint8ClampedArray(data.length);
+      for(let i=0;i<data.length;i+=4){
+        const mag=Math.min(255,Math.sqrt(Gx[i]*Gx[i]+Gy[i]*Gy[i])*1.5);
+        const v=mag>hi?255:(mag>low?100:0); out[i]=v;out[i+1]=v;out[i+2]=v;out[i+3]=255;
+      }
+      data=out;
+    }
+    ctx.putImageData(new ImageData(data,w,h),0,0);
+    ctx.fillStyle="rgba(0,0,0,0.6)"; ctx.fillRect(8,8,195,50);
+    ctx.fillStyle="#e8e4dc"; ctx.font="bold 13px monospace"; ctx.fillText(`模式：${modes.find(m=>m.k===kern).l}`,16,30);
+    ctx.fillStyle="#4ec9b0"; ctx.font="11px monospace";
+    ctx.fillText(kern==="canny"?`low=${low}  high=${hi}`:`threshold=${low}`,16,50);
+  }
+  draw();
+  addInfo(wrap, controls);
+}
+
+function buildHistLab(wrap) {
+  wrap.innerHTML="";
+  const grid=document.createElement("div"); grid.style.cssText="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:10px;"; wrap.appendChild(grid);
+  const imgW=document.createElement("div"); imgW.className="lab-canvas-wrap"; imgW.style.margin="0";
+  const histW=document.createElement("div"); histW.className="lab-canvas-wrap"; histW.style.margin="0";
+  const imgC=mkCanvas("hImgC",190,140); imgW.appendChild(imgC); grid.appendChild(imgW);
+  const histC=mkCanvas("hHistC",190,140); histW.appendChild(histC); grid.appendChild(histW);
+  const iCtx=imgC.getContext("2d"), hCtx=histC.getContext("2d");
+
+  const chipRow=document.createElement("div"); chipRow.className="chip-row"; wrap.appendChild(chipRow);
+  const chips=["原始","均衡化"].map((l,i)=>{
+    const b=document.createElement("button"); b.className="chip"; b.textContent=l; b.dataset.i=i;
+    chipRow.appendChild(b); return b;
+  });
+  chips[0].classList.add("active"); let mode=0;
+  chips.forEach(b=>b.addEventListener("click",()=>{
+    chips.forEach(c=>c.classList.remove("active")); b.classList.add("active"); mode=+b.dataset.i; draw();
+  }));
+
+  function draw() {
+    const w=190,h=140;
+    const base=buildBaseGray(w,h);
+    let data=base;
+    if(mode===1){
+      // Equalize
+      const hist=new Array(256).fill(0);
+      for(let i=0;i<base.data.length;i+=4) hist[base.data[i]]++;
+      let cdf=0; const lut=new Array(256);
+      for(let i=0;i<256;i++){cdf+=hist[i];lut[i]=Math.round((cdf/(w*h))*255);}
+      const out=new ImageData(w,h);
+      for(let i=0;i<base.data.length;i+=4){const v=lut[base.data[i]];out.data[i]=v;out.data[i+1]=v;out.data[i+2]=v;out.data[i+3]=255;}
+      data=out;
+    }
+    iCtx.putImageData(data,0,0);
+    iCtx.fillStyle="rgba(0,0,0,0.55)"; iCtx.fillRect(4,4,100,20);
+    iCtx.fillStyle="#4ec9b0"; iCtx.font="11px monospace"; iCtx.fillText(mode===0?"原始影像":"均衡化後",8,18);
+
+    // Draw histogram
+    const hist2=new Array(256).fill(0);
+    for(let i=0;i<data.data.length;i+=4) hist2[data.data[i]]++;
+    const maxV=Math.max(...hist2);
+    hCtx.clearRect(0,0,w,h); hCtx.fillStyle="#0d0f13"; hCtx.fillRect(0,0,w,h);
+    const pad=16, bw=Math.max(1,(w-4)/256);
+    hist2.forEach((v,i)=>{
+      const bh=((v/maxV)*(h-pad-4));
+      hCtx.fillStyle=mode===0?"#4ec9b0":"#e8855a";
+      hCtx.fillRect(2+i*bw, h-pad-bh, bw, bh);
+    });
+    hCtx.fillStyle="#8a919e"; hCtx.font="10px monospace"; hCtx.fillText("0",3,h-2); hCtx.fillText("255",w-24,h-2);
+    hCtx.fillStyle="#e8e4dc"; hCtx.font="bold 11px monospace"; hCtx.fillText(mode===0?"原始直方圖":"均衡化直方圖",6,14);
+  }
+  draw();
+  addInfo(wrap, chipRow);
+}
+
+function buildThreshLab(wrap) {
+  wrap.innerHTML="";
+  const cw=document.createElement("div"); cw.className="lab-canvas-wrap";
+  const c=mkCanvas("thC",400,160); cw.appendChild(c); wrap.appendChild(cw);
+  const ctx=c.getContext("2d");
+
+  const chipRow=document.createElement("div"); chipRow.className="chip-row"; wrap.appendChild(chipRow);
+  const modes=[{k:"binary",l:"Binary（手動）"},{k:"otsu",l:"Otsu（自動）"},{k:"adaptive",l:"Adaptive（局部）"}];
+  const chips=modes.map(m=>{
+    const b=document.createElement("button"); b.className="chip"; b.textContent=m.l; b.dataset.k=m.k;
+    chipRow.appendChild(b); return b;
+  });
+  chips[0].classList.add("active"); let meth="binary";
+  chips.forEach(b=>b.addEventListener("click",()=>{
+    chips.forEach(c=>c.classList.remove("active")); b.classList.add("active"); meth=b.dataset.k; draw();
+  }));
+
+  const ctrl=document.createElement("div"); ctrl.className="controls"; wrap.appendChild(ctrl);
+  const row=document.createElement("div"); row.className="ctrl-row";
+  row.innerHTML=`<span class="ctrl-label">Binary 門檻</span><input type="range" id="tth" min="0" max="255" value="127"><span class="ctrl-val" id="tthV">127</span>`;
+  ctrl.appendChild(row);
+  document.getElementById("tth").addEventListener("input",draw);
+
+  function otsu(data, w, h) {
+    const hist=new Array(256).fill(0);
+    for(let i=0;i<data.length;i+=4) hist[data[i]]++;
+    const total=w*h; let sum=0; for(let i=0;i<256;i++) sum+=i*hist[i];
+    let sumB=0,wB=0,maxV=0,bestT=0;
+    for(let t=0;t<256;t++){
+      wB+=hist[t]; const wF=total-wB; if(!wB||!wF) continue;
+      sumB+=t*hist[t]; const mB=sumB/wB, mF=(sum-sumB)/wF;
+      const v=wB*wF*(mB-mF)**2; if(v>maxV){maxV=v;bestT=t;}
+    }
+    return bestT;
+  }
+
+  function draw() {
+    const w=c.width, h=c.height;
+    const base=buildBaseGray(w,h);
+    const T=+document.getElementById("tth").value;
+    document.getElementById("tthV").textContent=T;
+    const oT=otsu(base.data,w,h);
+
+    let data=new Uint8ClampedArray(base.data.length);
+    if(meth==="binary") for(let i=0;i<base.data.length;i+=4){const v=base.data[i]>T?255:0;data[i]=v;data[i+1]=v;data[i+2]=v;data[i+3]=255;}
+    else if(meth==="otsu") for(let i=0;i<base.data.length;i+=4){const v=base.data[i]>oT?255:0;data[i]=v;data[i+1]=v;data[i+2]=v;data[i+3]=255;}
+    else {
+      // Adaptive (local average ~31px)
+      for(let y=0;y<h;y++) for(let x=0;x<w;x++){
+        let sum=0,cnt=0;
+        for(let dy=-15;dy<=15;dy++) for(let dx=-15;dx<=15;dx++){
+          const px=Math.min(w-1,Math.max(0,x+dx)), py=Math.min(h-1,Math.max(0,y+dy));
+          sum+=base.data[(py*w+px)*4]; cnt++;
+        }
+        const i=(y*w+x)*4, v=base.data[i]>(sum/cnt-8)?255:0;
+        data[i]=v;data[i+1]=v;data[i+2]=v;data[i+3]=255;
+      }
+    }
+    ctx.putImageData(new ImageData(data,w,h),0,0);
+    ctx.fillStyle="rgba(0,0,0,0.6)"; ctx.fillRect(8,8,220,50);
+    const labels={"binary":`Binary  T=${T}`,"otsu":`Otsu 自動 T=${oT}`,"adaptive":"Adaptive 局部"};
+    ctx.fillStyle="#e8e4dc"; ctx.font="bold 13px monospace"; ctx.fillText(labels[meth],16,30);
+    ctx.fillStyle="#4ec9b0"; ctx.font="11px monospace";
+    ctx.fillText(meth==="otsu"?"← 自動計算，不需手動設定":"點選 Otsu 看自動閾值",16,50);
+  }
+  draw();
+  addInfo(wrap, ctrl);
+}
+
+function buildMorphLab(wrap) {
+  wrap.innerHTML="";
+  const cw=document.createElement("div"); cw.className="lab-canvas-wrap";
+  const c=mkCanvas("moC",400,160); cw.appendChild(c); wrap.appendChild(cw);
+  const ctx=c.getContext("2d");
+
+  const chipRow=document.createElement("div"); chipRow.className="chip-row"; wrap.appendChild(chipRow);
+  const modes=[{k:"none",l:"原始"},{k:"dilate",l:"膨脹"},{k:"erode",l:"侵蝕"},{k:"open",l:"開運算"},{k:"close",l:"閉運算"}];
+  const chips=modes.map(m=>{
+    const b=document.createElement("button"); b.className="chip"; b.textContent=m.l; b.dataset.k=m.k;
+    chipRow.appendChild(b); return b;
+  });
+  chips[0].classList.add("active"); let meth="none";
+  chips.forEach(b=>b.addEventListener("click",()=>{
+    chips.forEach(c=>c.classList.remove("active")); b.classList.add("active"); meth=b.dataset.k; draw();
+  }));
+
+  const ctrl=document.createElement("div"); ctrl.className="controls"; wrap.appendChild(ctrl);
+  const row=document.createElement("div"); row.className="ctrl-row";
+  row.innerHTML=`<span class="ctrl-label">二值化門檻</span><input type="range" id="mth" min="40" max="220" value="128"><span class="ctrl-val" id="mthV">128</span>`;
+  ctrl.appendChild(row);
+  document.getElementById("mth").addEventListener("input",draw);
+
+  function morphStep(bin,w,h,type){
+    const out=new Uint8Array(bin.length);
+    for(let y=0;y<h;y++) for(let x=0;x<w;x++){
+      let cnt=0,tot=0;
+      for(let ky=-1;ky<=1;ky++) for(let kx=-1;kx<=1;kx++){
+        const px=x+kx,py=y+ky;
+        if(px>=0&&px<w&&py>=0&&py<h){tot++;cnt+=bin[py*w+px];}
+      }
+      out[y*w+x]=type==="dilate"?(cnt>0?1:0):(cnt===tot?1:0);
+    }
+    return out;
+  }
+
+  function draw() {
+    const w=c.width,h=c.height;
+    const base=buildBaseGray(w,h);
+    const T=+document.getElementById("mth").value;
+    document.getElementById("mthV").textContent=T;
+    let bin=new Uint8Array(w*h);
+    for(let i=0;i<base.data.length;i+=4) bin[(i/4)]=base.data[i]>T?1:0;
+    if(meth==="dilate") bin=morphStep(bin,w,h,"dilate");
+    else if(meth==="erode") bin=morphStep(bin,w,h,"erode");
+    else if(meth==="open"){bin=morphStep(bin,w,h,"erode");bin=morphStep(bin,w,h,"dilate");}
+    else if(meth==="close"){bin=morphStep(bin,w,h,"dilate");bin=morphStep(bin,w,h,"erode");}
+    const out=new ImageData(w,h);
+    for(let i=0;i<bin.length;i++){const v=bin[i]?255:18;out.data[i*4]=v;out.data[i*4+1]=v;out.data[i*4+2]=v;out.data[i*4+3]=255;}
+    ctx.putImageData(out,0,0);
+    ctx.fillStyle="rgba(0,0,0,0.6)"; ctx.fillRect(8,8,200,50);
+    const labels={"none":"原始","dilate":"膨脹 Dilate","erode":"侵蝕 Erode","open":"開運算（侵蝕→膨脹）","close":"閉運算（膨脹→侵蝕）"};
+    ctx.fillStyle="#e8e4dc"; ctx.font="bold 12px monospace"; ctx.fillText(labels[meth],16,30);
+    ctx.fillStyle="#4ec9b0"; ctx.font="11px monospace"; ctx.fillText(`T=${T}`,16,50);
+  }
+  draw();
+  addInfo(wrap, ctrl);
+}
+
+function buildCnnLab(wrap) {
+  wrap.innerHTML="";
+  const cw=document.createElement("div"); cw.className="lab-canvas-wrap";
+  const c=mkCanvas("cnnC",400,160); cw.appendChild(c); wrap.appendChild(cw);
+  const ctx=c.getContext("2d");
+  ctx.fillStyle="#0d0f13"; ctx.fillRect(0,0,c.width,c.height);
+
+  const steps=[
+    {label:"imread\nBGR",col:"#e8855a"},
+    {label:"cvtColor\nBGR→RGB",col:"#c9a84c"},
+    {label:"resize\n224×224",col:"#4ec9b0"},
+    {label:"÷255\n[0,1]",col:"#9cdcfe"},
+    {label:"transpose\nHWC→CHW",col:"#ce9178"},
+    {label:"batch\n(1,3,224,224)",col:"#b5cea8"}
+  ];
+  const sw=(c.width-20)/steps.length;
+  steps.forEach((s,i)=>{
+    const x=10+i*sw;
+    ctx.fillStyle=s.col+"22"; ctx.strokeStyle=s.col+"88";
+    ctx.lineWidth=1; ctx.beginPath(); ctx.roundRect(x+4,20,sw-8,110,8); ctx.fill(); ctx.stroke();
+    ctx.fillStyle=s.col; ctx.font="bold 11px monospace"; ctx.textAlign="center";
+    s.label.split("\n").forEach((l,li)=>ctx.fillText(l,x+sw/2-4,55+li*18));
+    if(i<steps.length-1){ctx.fillStyle="#8a919e"; ctx.font="18px monospace"; ctx.fillText("→",x+sw-4,78);}
+  });
+  ctx.textAlign="left";
+
+  const ctrl=document.createElement("div"); ctrl.className="controls"; wrap.appendChild(ctrl);
+  const row=document.createElement("div"); row.className="ctrl-row";
+  row.innerHTML=`<span class="ctrl-label">目標尺寸</span><input type="range" id="cnnSz" min="64" max="512" step="32" value="224"><span class="ctrl-val" id="cnnSzV">224</span>`;
+  ctrl.appendChild(row);
+  document.getElementById("cnnSz").addEventListener("input",()=>{
+    document.getElementById("cnnSzV").textContent=document.getElementById("cnnSz").value;
+    // re-draw step 3
+    ctx.fillStyle="#0d0f13";
+    ctx.fillRect(10+2*sw, 20, sw-8, 110);
+    const x=10+2*sw, sz=document.getElementById("cnnSz").value;
+    ctx.fillStyle=steps[2].col+"22"; ctx.strokeStyle=steps[2].col+"88";
+    ctx.beginPath(); ctx.roundRect(x+4,20,sw-8,110,8); ctx.fill(); ctx.stroke();
+    ctx.fillStyle=steps[2].col; ctx.font="bold 11px monospace"; ctx.textAlign="center";
+    ctx.fillText("resize",x+sw/2-4,55); ctx.fillText(`${sz}×${sz}`,x+sw/2-4,73);
+    ctx.textAlign="left";
+  });
+  addInfo(wrap, ctrl);
+}
+
+function addInfo(wrap, afterEl) {
+  const concept = concepts[currentIdx];
+  const info = document.createElement("div"); info.className="info-box";
+  info.innerHTML = concept.info; wrap.appendChild(info);
+}
+
+// ══════════════════════════════════════════════
+// TAB SYSTEM
+// ══════════════════════════════════════════════
+let currentIdx = 0;
+const tabsEl = document.getElementById("tabs");
+const labArea = document.getElementById("labArea");
+
+concepts.forEach((c, i) => {
+  const btn = document.createElement("button");
+  btn.className = "tab" + (i===0?" active":"");
+  btn.textContent = c.label;
+  btn.addEventListener("click", () => switchConcept(i));
+  tabsEl.appendChild(btn);
+});
+
+function switchConcept(i) {
+  currentIdx = i;
+  document.querySelectorAll(".tab").forEach((t,j) => t.classList.toggle("active", j===i));
+  concepts[i].buildLab(labArea);
+  editor.setValue(concepts[i].code);
+  clearOutput();
+}
+
+// ══════════════════════════════════════════════
+// CODE EDITOR (CodeMirror)
+// ══════════════════════════════════════════════
+const editor = CodeMirror.fromTextArea(document.getElementById("codeEditor"), {
+  mode: "python",
+  theme: "dracula",
+  lineNumbers: true,
+  autoCloseBrackets: true,
+  indentUnit: 4,
+  tabSize: 4,
+  lineWrapping: false,
+  extraKeys: {
+    "Ctrl-Enter": () => runCode(),
+    "Cmd-Enter":  () => runCode(),
+    "Ctrl-/":     cm => cm.execCommand("toggleComment"),
+  }
+});
+editor.setValue(concepts[0].code);
+
+document.querySelector(".editor-wrap").style.height = "calc(100% - 52px - 240px)";
+setTimeout(() => editor.refresh(), 100);
+
+function resetCode() { editor.setValue(concepts[currentIdx].code); }
+function clearOutput() {
+  document.getElementById("outputBody").innerHTML =
+    `<div class="output-placeholder"><span>▶</span>點擊「執行」跑 Python，結果顯示在這裡</div>`;
+}
+
+// ══════════════════════════════════════════════
+// PYODIDE
+// ══════════════════════════════════════════════
+let pyodide = null;
+let pyReady = false;
+
+async function loadPyodide() {
+  const script = document.createElement("script");
+  script.src = "https://cdn.jsdelivr.net/pyodide/v0.25.1/full/pyodide.js";
+  document.head.appendChild(script);
+  await new Promise(r => script.onload = r);
+
+  const dot = document.getElementById("pyDot");
+  const label = document.getElementById("pyLabel");
+  dot.className = "py-dot loading"; label.textContent = "載入 Python…";
+
+  try {
+    pyodide = await loadPyodide({ indexURL: "https://cdn.jsdelivr.net/pyodide/v0.25.1/full/" });
+    await pyodide.loadPackage(["numpy", "matplotlib", "scipy"]);
+
+    // Setup matplotlib Agg backend
+    await pyodide.runPythonAsync(`
+import matplotlib
+matplotlib.use('Agg')
+import matplotlib.pyplot as plt
+import matplotlib.font_manager as fm
+plt.rcParams['font.family'] = ['DejaVu Sans']
+`);
+    dot.className = "py-dot ready"; label.textContent = "Python 就緒";
+    document.getElementById("runBtn").disabled = false;
+    pyReady = true;
+  } catch(e) {
+    dot.className = "py-dot error"; label.textContent = "載入失敗";
+    console.error(e);
+  }
+}
+
+loadPyodide();
+
+// ══════════════════════════════════════════════
+// RUN CODE
+// ══════════════════════════════════════════════
+async function runCode() {
+  if (!pyReady) return;
+  const btn = document.getElementById("runBtn");
+  const label = btn.querySelector(".run-label");
+  btn.classList.add("running"); btn.disabled = true;
+  label.style.display = "inline";
+
+  const code = editor.getValue();
+
+  try {
+    // Setup output capture
+    await pyodide.runPythonAsync(`
+import sys, io, base64, json
+import matplotlib.pyplot as plt
+
+_stdout_buf = io.StringIO()
+sys.stdout = _stdout_buf
+plt.close('all')
+`);
+
+    let errMsg = null;
+    try {
+      await pyodide.runPythonAsync(code);
+    } catch(e) {
+      errMsg = e.message;
+    }
+
+    // Collect output
+    const result = await pyodide.runPythonAsync(`
+sys.stdout = sys.__stdout__
+_text = _stdout_buf.getvalue()
+_images = []
+for fn in plt.get_fignums():
+    fig = plt.figure(fn)
+    buf = io.BytesIO()
+    fig.savefig(buf, format='png', bbox_inches='tight', dpi=110, facecolor='#0d0f13')
+    plt.close(fig)
+    buf.seek(0)
+    _images.append(base64.b64encode(buf.read()).decode())
+json.dumps({"text": _text, "images": _images})
+`);
+
+    const data = JSON.parse(result);
+    showOutput(data.text, data.images, errMsg);
+
+  } catch(e) {
+    showOutput("", [], e.message);
+  }
+
+  btn.classList.remove("running"); btn.disabled = false; label.style.display = "none";
+}
+
+function showOutput(text, images, errMsg) {
+  const body = document.getElementById("outputBody");
+  body.innerHTML = "";
+
+  if (!text && !images.length && !errMsg) {
+    body.innerHTML = `<div class="output-placeholder"><span>✓</span>執行完成（無輸出）</div>`;
+    return;
+  }
+
+  if (text || errMsg) {
+    const pre = document.createElement("div");
+    pre.className = "output-text";
+    if (text) pre.textContent = text;
+    if (errMsg) {
+      const err = document.createElement("span");
+      err.className = "err"; err.textContent = "\n❌ " + errMsg;
+      pre.appendChild(err);
+    }
+    body.appendChild(pre);
+  }
+
+  images.forEach(b64 => {
+    const wrap = document.createElement("div"); wrap.className = "output-img";
+    const img = document.createElement("img");
+    img.src = "data:image/png;base64," + b64;
+    wrap.appendChild(img); body.appendChild(wrap);
+  });
+}
+
+// ══════════════════════════════════════════════
+// INIT
+// ══════════════════════════════════════════════
+concepts[0].buildLab(labArea);
+</script>
+</body>
+</html>
