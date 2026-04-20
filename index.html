@@ -1,0 +1,1742 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Python 影像處理互動式學習體驗 — iPAS AI 完整版</title>
+  <style>
+    :root {
+      --bg: #f6efe5;
+      --panel: rgba(255, 251, 245, 0.9);
+      --ink: #1e2430;
+      --muted: #596273;
+      --line: #d9c9b2;
+      --accent: #c85c3d;
+      --accent-2: #2b7a78;
+      --accent-3: #e0a458;
+      --shadow: 0 18px 50px rgba(64, 42, 18, 0.12);
+      --radius: 20px;
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      font-family: "Segoe UI", "Noto Sans TC", sans-serif;
+      color: var(--ink);
+      background:
+        radial-gradient(circle at top left, rgba(224, 164, 88, 0.18), transparent 32%),
+        radial-gradient(circle at 85% 10%, rgba(43, 122, 120, 0.14), transparent 26%),
+        linear-gradient(180deg, #fcf7f0 0%, var(--bg) 55%, #efe1d0 100%);
+      line-height: 1.65;
+    }
+
+    header { padding: 56px 20px 24px; }
+
+    .wrap { max-width: 1180px; margin: 0 auto; padding: 0 20px 48px; }
+
+    .hero { display: grid; grid-template-columns: 1.1fr 0.9fr; gap: 24px; align-items: stretch; }
+
+    .hero-card, section {
+      background: var(--panel);
+      border: 1px solid rgba(201, 168, 124, 0.35);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      backdrop-filter: blur(12px);
+    }
+
+    .hero-card { padding: 28px; }
+
+    h1, h2, h3 { margin: 0 0 10px; line-height: 1.2; }
+    h1 { font-size: clamp(2rem, 4vw, 3.8rem); letter-spacing: -0.03em; }
+    h2 { font-size: clamp(1.4rem, 2vw, 2rem); margin-bottom: 18px; }
+    h3 { font-size: 1.05rem; }
+
+    p { margin: 0 0 12px; color: var(--muted); }
+
+    .badge {
+      display: inline-block; padding: 8px 12px; border-radius: 999px;
+      background: rgba(200, 92, 61, 0.12); color: var(--accent);
+      font-weight: 700; letter-spacing: 0.02em; margin-bottom: 16px;
+    }
+
+    .hero-points { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin-top: 18px; }
+    .hero-points div {
+      padding: 14px; border-radius: 16px;
+      background: rgba(255, 255, 255, 0.6); border: 1px solid rgba(201, 168, 124, 0.28);
+    }
+
+    .hero-visual {
+      min-height: 320px; position: relative; overflow: hidden;
+      background:
+        linear-gradient(135deg, rgba(43, 122, 120, 0.18), rgba(224, 164, 88, 0.16)),
+        linear-gradient(180deg, rgba(255,255,255,0.6), rgba(255,255,255,0.1));
+    }
+
+    .signal {
+      position: absolute; inset: 22px; border-radius: 24px;
+      border: 1px solid rgba(43, 122, 120, 0.25); overflow: hidden;
+      background: linear-gradient(135deg, #fff2de, #f7faf8);
+    }
+
+    .signal::before, .signal::after {
+      content: ""; position: absolute; inset: auto; border-radius: 50%; filter: blur(8px); opacity: 0.85;
+    }
+    .signal::before { width: 180px; height: 180px; background: rgba(200, 92, 61, 0.28); top: 10%; left: 10%; }
+    .signal::after { width: 220px; height: 220px; background: rgba(43, 122, 120, 0.22); right: 6%; bottom: 2%; }
+
+    .signal-grid {
+      position: absolute; inset: 0;
+      background-image:
+        linear-gradient(rgba(30, 36, 48, 0.1) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(30, 36, 48, 0.1) 1px, transparent 1px);
+      background-size: 30px 30px; opacity: 0.5;
+    }
+
+    .signal-label {
+      position: absolute; padding: 10px 12px; background: rgba(255, 255, 255, 0.85);
+      border-radius: 14px; border: 1px solid rgba(201, 168, 124, 0.28); font-weight: 700; font-size: 0.95rem;
+    }
+    .signal-label.one { top: 24px; left: 24px; }
+    .signal-label.two { bottom: 28px; right: 24px; }
+
+    main { display: grid; gap: 24px; margin-top: 24px; }
+    section { padding: 28px; }
+
+    .concept-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 16px; }
+    .concept-card {
+      padding: 18px; border-radius: 18px;
+      background: rgba(255, 255, 255, 0.62); border: 1px solid rgba(201, 168, 124, 0.25);
+    }
+    .concept-card strong { display: block; margin-bottom: 8px; color: var(--accent-2); }
+
+    .lab-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 18px; align-items: start; }
+
+    .panel {
+      padding: 18px; background: rgba(255, 255, 255, 0.64);
+      border-radius: 18px; border: 1px solid rgba(201, 168, 124, 0.25);
+    }
+
+    .controls { display: grid; gap: 14px; }
+
+    label { display: grid; gap: 6px; font-weight: 700; color: var(--ink); }
+    input[type="range"] { width: 100%; accent-color: var(--accent); }
+
+    .mini-note { font-size: 0.95rem; color: var(--muted); margin-top: 8px; }
+
+    .chips { display: flex; flex-wrap: wrap; gap: 8px; }
+    .chip {
+      padding: 8px 12px; border-radius: 999px;
+      border: 1px solid rgba(201, 168, 124, 0.35);
+      background: rgba(255,255,255,0.72); cursor: pointer; font-weight: 700;
+    }
+    .chip.active {
+      background: rgba(200, 92, 61, 0.15); color: var(--accent); border-color: rgba(200, 92, 61, 0.45);
+    }
+
+    canvas {
+      width: 100%; max-width: 100%; display: block; border-radius: 16px;
+      background: #fff; border: 1px solid rgba(201, 168, 124, 0.35);
+    }
+
+    .four-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 14px; }
+    .three-col { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; }
+
+    .design-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 14px; }
+    .design-card {
+      padding: 16px; border-radius: 18px;
+      background: rgba(255,255,255,0.64); border: 1px solid rgba(201, 168, 124, 0.25);
+    }
+    .design-card p { margin-bottom: 8px; font-size: 0.96rem; }
+
+    .section-kicker { color: var(--accent); font-weight: 700; margin-bottom: 12px; }
+
+    .mini-card {
+      padding: 14px; border-radius: 16px;
+      background: rgba(255,255,255,0.62); border: 1px solid rgba(201, 168, 124, 0.24);
+    }
+
+    pre {
+      margin: 0; overflow: auto; padding: 16px; border-radius: 18px;
+      background: #1e2430; color: #f5f0ea; font-size: 0.88rem; line-height: 1.55;
+    }
+
+    code { font-family: Consolas, "Courier New", monospace; }
+
+    .kw { color: #e0a458; }
+    .fn { color: #7ecec4; }
+    .st { color: #a8d8a8; }
+    .cm { color: #7a8fa6; }
+    .num { color: #f0c09a; }
+
+    table { width: 100%; border-collapse: collapse; overflow: hidden; border-radius: 16px; }
+    th, td {
+      text-align: left; padding: 12px 14px;
+      border-bottom: 1px solid rgba(201, 168, 124, 0.24); background: rgba(255,255,255,0.56);
+    }
+    th { color: var(--accent-2); }
+
+    .pipeline { display: grid; grid-template-columns: repeat(5, 1fr); gap: 10px; }
+    .step {
+      padding: 16px; border-radius: 16px; background: rgba(255,255,255,0.68);
+      border: 1px solid rgba(201, 168, 124, 0.25); text-align: center; font-weight: 700;
+    }
+
+    .footer-note {
+      margin-top: 16px; padding: 16px 18px; border-radius: 18px;
+      background: rgba(43, 122, 120, 0.08); border: 1px solid rgba(43, 122, 120, 0.2);
+    }
+
+    /* ===== NEW STYLES ===== */
+
+    .code-toggle {
+      margin-top: 12px; padding: 7px 14px; border-radius: 999px;
+      border: 1px solid rgba(200, 92, 61, 0.35); background: rgba(200, 92, 61, 0.08);
+      color: var(--accent); font-weight: 700; cursor: pointer; font-size: 0.88rem;
+      display: inline-flex; align-items: center; gap: 6px;
+    }
+    .code-toggle:hover { background: rgba(200, 92, 61, 0.16); }
+
+    .code-panel { display: none; margin-top: 10px; }
+    .code-panel.open { display: block; }
+
+    .quiz-q {
+      padding: 18px; border-radius: 18px;
+      background: rgba(255, 255, 255, 0.62); border: 1px solid rgba(201, 168, 124, 0.25);
+      margin-bottom: 14px;
+    }
+    .quiz-q h4 { margin: 0 0 12px; font-size: 1rem; color: var(--ink); }
+
+    .quiz-options { display: grid; gap: 8px; }
+    .quiz-option {
+      padding: 10px 14px; border-radius: 12px;
+      border: 1px solid rgba(201, 168, 124, 0.35); background: rgba(255,255,255,0.72);
+      cursor: pointer; font-size: 0.95rem; text-align: left; color: var(--ink);
+      transition: all 0.15s;
+    }
+    .quiz-option:hover:not([disabled]) { background: rgba(200, 92, 61, 0.08); }
+    .quiz-option.correct { background: rgba(43,122,120,0.15); border-color: rgba(43,122,120,0.5); color: #1a5c59; font-weight: 700; }
+    .quiz-option.wrong { background: rgba(200,92,61,0.1); border-color: rgba(200,92,61,0.4); color: var(--accent); }
+    .quiz-option[disabled] { cursor: default; }
+
+    .quiz-explanation {
+      display: none; margin-top: 10px; padding: 12px 14px; border-radius: 14px;
+      background: rgba(43,122,120,0.08); border: 1px solid rgba(43,122,120,0.2);
+      font-size: 0.93rem; color: var(--muted);
+    }
+    .quiz-explanation.show { display: block; }
+
+    .quiz-meta {
+      display: flex; align-items: center; gap: 14px; margin-bottom: 20px;
+      padding: 14px 18px; border-radius: 16px;
+      background: rgba(255,255,255,0.62); border: 1px solid rgba(201,168,124,0.25);
+    }
+    .quiz-score { font-weight: 700; font-size: 1.1rem; color: var(--accent-2); white-space: nowrap; }
+    .progress-bar { flex: 1; height: 8px; border-radius: 999px; background: rgba(201,168,124,0.25); overflow: hidden; }
+    .progress-fill { height: 100%; background: var(--accent-2); border-radius: 999px; transition: width 0.4s; }
+
+    .search-wrap { margin-bottom: 14px; }
+    .search-input {
+      width: 100%; padding: 12px 16px; border-radius: 14px;
+      border: 1px solid rgba(201,168,124,0.35); background: rgba(255,255,255,0.72);
+      font-size: 0.95rem; color: var(--ink); outline: none;
+    }
+    .search-input:focus { border-color: rgba(200,92,61,0.45); }
+
+    .api-row-hidden { display: none; }
+
+    mark { background: rgba(224,164,88,0.35); border-radius: 3px; padding: 0 2px; }
+
+    .hist-wrap { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+
+    .cnn-pipeline { display: grid; grid-template-columns: repeat(6,1fr); gap: 8px; margin-top: 12px; }
+    .cnn-step {
+      padding: 12px 8px; border-radius: 14px;
+      background: rgba(255,255,255,0.68); border: 1px solid rgba(201,168,124,0.25);
+      text-align: center; font-size: 0.85rem; font-weight: 700;
+    }
+    .cnn-step small { display: block; font-weight: 400; color: var(--muted); font-size: 0.78rem; margin-top: 4px; }
+
+    .interp-wrap { display: grid; grid-template-columns: repeat(3,1fr); gap: 12px; margin-top: 12px; }
+    .canvas-label { text-align: center; font-size: 0.85rem; font-weight: 700; color: var(--muted); margin-top: 6px; }
+
+    .alert-box {
+      padding: 14px 16px; border-radius: 16px;
+      background: rgba(200,92,61,0.08); border: 1px solid rgba(200,92,61,0.25);
+      margin-top: 12px; font-size: 0.93rem;
+    }
+    .alert-box strong { color: var(--accent); }
+
+    .tag {
+      display: inline-block; padding: 3px 10px; border-radius: 999px;
+      font-size: 0.8rem; font-weight: 700; margin-right: 4px;
+    }
+    .tag-cv { background: rgba(43,122,120,0.15); color: #1a5c59; }
+    .tag-pil { background: rgba(224,164,88,0.2); color: #7a5a10; }
+    .tag-np { background: rgba(200,92,61,0.12); color: var(--accent); }
+    .tag-ski { background: rgba(80,80,180,0.12); color: #3a3a8a; }
+
+    @media (max-width: 920px) {
+      .hero, .lab-grid { grid-template-columns: 1fr; }
+      .pipeline, .cnn-pipeline { grid-template-columns: 1fr; }
+      .hero-points, .four-grid, .three-col, .hist-wrap, .interp-wrap { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+  <header class="wrap">
+    <div class="hero">
+      <div class="hero-card">
+        <div class="badge">iPAS AI 應用規劃師 × Python 影像處理互動教學 — 完整版</div>
+        <h1>看懂影像，不只會調 API</h1>
+        <p>這是一個為「理解 + 記憶 + 應用」設計的學習頁，完整對應 iPAS AI 中級考試影像處理考點。互動操作 + Python 程式碼對照 + 考題模擬，一頁搞定。</p>
+        <div class="hero-points">
+          <div><strong>互動實驗室</strong><p>7 個可操作的實驗室，每個都附 Python 程式碼對照。</p></div>
+          <div><strong>API 速查表</strong><p>cv2 / PIL / NumPy 三庫對照，可即時搜尋。</p></div>
+          <div><strong>考題模擬</strong><p>10 道 iPAS 風格選擇題，附解析即時回饋。</p></div>
+        </div>
+      </div>
+      <div class="hero-card hero-visual">
+        <div class="signal">
+          <div class="signal-grid"></div>
+          <div class="signal-label one">Pixel = 影像積木</div>
+          <div class="signal-label two">Feature = 給 AI 的重點筆記</div>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <main class="wrap">
+
+    <!-- ===== SECTION 1: CORE KNOWLEDGE ===== -->
+    <section>
+      <h2>一、核心知識拆解</h2>
+      <div class="concept-grid">
+        <article class="concept-card"><strong>矩陣與像素</strong>影像就是一個數值矩陣，每個格子是像素。<br /><span style="font-size:0.9rem;color:var(--accent-2)">img.shape → (H, W, 3)｜dtype → uint8｜值域 0~255</span></article>
+        <article class="concept-card"><strong>影像讀取與通道順序</strong><span style="color:var(--accent)">cv2.imread</span> 回傳 BGR（不是 RGB）；<span style="color:var(--accent-2)">PIL.Image.open</span> 回傳 RGB。混用時務必轉換。</article>
+        <article class="concept-card"><strong>色彩空間轉換</strong>同一個顏色改用不同座標系描述。RGB 看混色、Gray 看亮度、HSV 看色相。灰階公式：<span style="color:var(--accent-2)">0.299R + 0.587G + 0.114B</span>（G 權重最高因人眼最敏感）。</article>
+        <article class="concept-card"><strong>幾何轉換</strong>改變影像的位置、角度或形狀。旋轉用 getRotationMatrix2D + warpAffine；翻轉用 cv2.flip（0=垂直,1=水平,-1=兩者）。</article>
+        <article class="concept-card"><strong>卷積</strong>用小視窗掃過整張圖，重新計算局部。模糊、銳化、邊緣偵測都是卷積的應用，差別在 kernel 值不同。</article>
+        <article class="concept-card"><strong>降噪與平滑</strong>降低影像中的隨機雜訊。Gaussian Blur 最常用，先降噪再找邊緣通常更穩定。</article>
+        <article class="concept-card"><strong>邊緣偵測</strong>找亮度變化劇烈的位置。Canny 是最重要的方法，需設定<span style="color:var(--accent)">雙閾值</span>（低閾值排弱邊緣、高閾值保強邊緣）。</article>
+        <article class="concept-card"><strong>二值化與閾值方法</strong>手動（THRESH_BINARY）、Otsu 自動閾值、自適應閾值（每個區域獨立計算）。考試常考差異。</article>
+        <article class="concept-card"><strong>直方圖與均衡化</strong>直方圖顯示像素亮度分布。均衡化（equalizeHist）重新分配使分布均勻，用於提升低對比影像的對比度。</article>
+        <article class="concept-card"><strong>形態學操作</strong>膨脹(dilate) → 侵蝕(erode)，組合成開運算（去小白點）、閉運算（補小黑洞）。記憶：<span style="color:var(--accent)">開 = 侵蝕→膨脹，閉 = 膨脹→侵蝕</span>。</article>
+        <article class="concept-card"><strong>插值方法</strong>縮放時填補新像素的策略。INTER_NEAREST（最快，馬賽克感強）、INTER_LINEAR（雙線性，最常用）、INTER_CUBIC（最平滑）。</article>
+        <article class="concept-card"><strong>CNN 前處理流程</strong>讀取 → resize 到固定尺寸 → 轉 RGB → 除以 255 正規化到 [0,1] → 轉 tensor。這是 AI pipeline 的標準起點。</article>
+      </div>
+    </section>
+
+    <!-- ===== SECTION 2: INTERACTIVE LABS ===== -->
+    <section>
+      <h2>二、互動式實驗室</h2>
+      <p class="section-kicker">每個關鍵字都對應一個可操作的互動體驗，並附 Python 程式碼對照。</p>
+
+      <!-- LAB A: RGB + Pixel -->
+      <div class="lab-grid">
+        <div class="panel">
+          <h3>實驗室 A：RGB + 像素化</h3>
+          <div class="controls">
+            <label>紅色 R：<span id="rValue">180</span>
+              <input id="rSlider" type="range" min="0" max="255" value="180" />
+            </label>
+            <label>綠色 G：<span id="gValue">120</span>
+              <input id="gSlider" type="range" min="0" max="255" value="120" />
+            </label>
+            <label>藍色 B：<span id="bValue">90</span>
+              <input id="bSlider" type="range" min="0" max="255" value="90" />
+            </label>
+            <label>像素大小：<span id="pixelValue">16</span>
+              <input id="pixelSlider" type="range" min="4" max="40" value="16" />
+            </label>
+          </div>
+          <p class="mini-note">RGB = 三個通道值 [0,255]。像素變大 = 細節壓縮。<br /><strong>記憶：RGB 像三盞燈，像素像積木。</strong></p>
+          <button class="code-toggle" onclick="toggleCode('codeA')">⟨/⟩ 查看 Python 對照程式碼</button>
+          <div class="code-panel" id="codeA">
+<pre><code><span class="cm"># 影像讀取與陣列結構</span>
+<span class="kw">import</span> cv2
+<span class="kw">import</span> numpy <span class="kw">as</span> np
+
+img = cv2.<span class="fn">imread</span>(<span class="st">"test.jpg"</span>)   <span class="cm"># 回傳 BGR (不是RGB!)</span>
+<span class="fn">print</span>(img.shape)  <span class="cm"># (height, width, 3)</span>
+<span class="fn">print</span>(img.dtype)  <span class="cm"># uint8</span>
+<span class="fn">print</span>(img[<span class="num">100</span>, <span class="num">200</span>])  <span class="cm"># 某像素的 [B, G, R] 值</span>
+
+<span class="cm"># RGB 轉換 (OpenCV 讀取是 BGR 需轉)</span>
+img_rgb = cv2.<span class="fn">cvtColor</span>(img, cv2.COLOR_BGR2RGB)
+
+<span class="cm"># 像素化效果</span>
+h, w = img.shape[:<span class="num">2</span>]
+size = <span class="num">16</span>  <span class="cm"># 像素大小</span>
+small = cv2.<span class="fn">resize</span>(img, (w//size, h//size),
+                   interpolation=cv2.INTER_NEAREST)
+pixelated = cv2.<span class="fn">resize</span>(small, (w, h),
+                        interpolation=cv2.INTER_NEAREST)</code></pre>
+          </div>
+        </div>
+        <div class="panel">
+          <canvas id="pixelCanvas" width="520" height="320"></canvas>
+        </div>
+      </div>
+
+      <!-- LAB B: Filter + Canny -->
+      <div class="lab-grid" style="margin-top:18px">
+        <div class="panel">
+          <h3>實驗室 B：卷積 / 濾波 / 邊緣 / Canny</h3>
+          <div class="chips" id="kernelChips">
+            <button class="chip active" data-kernel="original">原圖</button>
+            <button class="chip" data-kernel="blur">模糊</button>
+            <button class="chip" data-kernel="sharpen">銳化</button>
+            <button class="chip" data-kernel="edge">邊緣(Laplacian)</button>
+            <button class="chip" data-kernel="canny">Canny 邊緣</button>
+          </div>
+          <label style="margin-top:14px">低閾值 / 強度門檻：<span id="thresholdValue">80</span>
+            <input id="thresholdSlider" type="range" min="10" max="180" value="80" />
+          </label>
+          <label id="cannyHighWrap" style="display:none">Canny 高閾值：<span id="cannyHighValue">160</span>
+            <input id="cannyHighSlider" type="range" min="50" max="250" value="160" />
+          </label>
+          <p class="mini-note">Canny 需設定<strong>雙閾值</strong>（低閾值＋高閾值），這是 iPAS 高頻考點。<br /><strong>記憶：Canny = 先降噪，再雙閾值切強弱邊緣。</strong></p>
+          <div class="footer-note">
+            <strong>建議觀察：</strong>模糊 → 細節變淡；銳化 → 對比提高；Laplacian → 所有邊界；Canny → 只保留強邊界。
+          </div>
+          <button class="code-toggle" onclick="toggleCode('codeB')">⟨/⟩ 查看 Python 對照程式碼</button>
+          <div class="code-panel" id="codeB">
+<pre><code><span class="kw">import</span> cv2
+<span class="kw">import</span> numpy <span class="kw">as</span> np
+
+img = cv2.<span class="fn">imread</span>(<span class="st">"test.jpg"</span>, <span class="num">0</span>)  <span class="cm"># 0 = 灰階</span>
+
+<span class="cm"># 高斯模糊</span>
+blur = cv2.<span class="fn">GaussianBlur</span>(img, (<span class="num">5</span>,<span class="num">5</span>), <span class="num">0</span>)
+
+<span class="cm"># 銳化 (自定義 kernel)</span>
+kernel = np.<span class="fn">array</span>([[<span class="num">0</span>,-<span class="num">1</span>,<span class="num">0</span>],[-<span class="num">1</span>,<span class="num">5</span>,-<span class="num">1</span>],[<span class="num">0</span>,-<span class="num">1</span>,<span class="num">0</span>]])
+sharp = cv2.<span class="fn">filter2D</span>(img, -<span class="num">1</span>, kernel)
+
+<span class="cm"># Laplacian 邊緣</span>
+lap = cv2.<span class="fn">Laplacian</span>(img, cv2.CV_64F)
+lap_abs = np.<span class="fn">uint8</span>(np.<span class="fn">absolute</span>(lap))
+
+<span class="cm"># Canny 邊緣 ★ 考試重點 ★</span>
+<span class="cm"># 先 Gaussian 降噪，再雙閾值</span>
+edges = cv2.<span class="fn">Canny</span>(img,
+    threshold1=<span class="num">50</span>,   <span class="cm"># 低閾值：弱邊緣門檻</span>
+    threshold2=<span class="num">150</span>)  <span class="cm"># 高閾值：強邊緣門檻</span></code></pre>
+          </div>
+        </div>
+        <div class="panel">
+          <canvas id="filterCanvas" width="520" height="320"></canvas>
+        </div>
+      </div>
+
+      <!-- LAB C: Color Space -->
+      <div class="lab-grid" style="margin-top:18px">
+        <div class="panel">
+          <h3>實驗室 C：色彩空間轉換</h3>
+          <div class="chips" id="colorModeChips">
+            <button class="chip active" data-color-mode="rgb">RGB</button>
+            <button class="chip" data-color-mode="gray">Gray</button>
+            <button class="chip" data-color-mode="hsv">HSV 三通道</button>
+          </div>
+          <label style="margin-top:14px">色相偏移：<span id="hueValue">20</span>
+            <input id="hueSlider" type="range" min="0" max="360" value="20" />
+          </label>
+          <label>飽和度：<span id="satValue">70</span>
+            <input id="satSlider" type="range" min="0" max="100" value="70" />
+          </label>
+          <p class="mini-note">色彩空間只是改「表示法」，內容沒變。<br /><strong>記憶：cv2 讀取 = BGR；PIL 讀取 = RGB；轉換要明確寫。</strong></p>
+          <button class="code-toggle" onclick="toggleCode('codeC')">⟨/⟩ 查看 Python 對照程式碼</button>
+          <div class="code-panel" id="codeC">
+<pre><code><span class="kw">import</span> cv2
+
+img = cv2.<span class="fn">imread</span>(<span class="st">"test.jpg"</span>)  <span class="cm"># 預設 BGR</span>
+
+<span class="cm"># ★ 常見考點：轉換方式 ★</span>
+rgb  = cv2.<span class="fn">cvtColor</span>(img, cv2.COLOR_BGR2RGB)
+gray = cv2.<span class="fn">cvtColor</span>(img, cv2.COLOR_BGR2GRAY)
+hsv  = cv2.<span class="fn">cvtColor</span>(img, cv2.COLOR_BGR2HSV)
+
+<span class="cm"># 灰階公式 (加權平均)</span>
+<span class="cm"># gray = 0.299*R + 0.587*G + 0.114*B</span>
+<span class="cm"># G 權重最高因人眼對綠光感知最靈敏</span>
+
+<span class="cm"># HSV 分離三通道</span>
+h, s, v = cv2.<span class="fn">split</span>(hsv)
+
+<span class="cm"># PIL 版本（注意：PIL 回傳 RGB）</span>
+<span class="kw">from</span> PIL <span class="kw">import</span> Image
+pil_img = Image.<span class="fn">open</span>(<span class="st">"test.jpg"</span>)   <span class="cm"># RGB</span>
+pil_gray = pil_img.<span class="fn">convert</span>(<span class="st">"L"</span>)    <span class="cm"># 灰階</span></code></pre>
+          </div>
+        </div>
+        <div class="panel">
+          <canvas id="colorCanvas" width="520" height="320"></canvas>
+        </div>
+      </div>
+
+      <!-- LAB D: Geometry + Morph + Flip -->
+      <div class="lab-grid" style="margin-top:18px">
+        <div class="panel">
+          <h3>實驗室 D：幾何轉換 + 翻轉 + 形態學</h3>
+          <label>旋轉角度：<span id="rotateValue">15</span>°
+            <input id="rotateSlider" type="range" min="-60" max="60" value="15" />
+          </label>
+          <label>縮放倍率：<span id="scaleValue">100</span>%
+            <input id="scaleSlider" type="range" min="60" max="140" value="100" />
+          </label>
+          <label>二值化門檻：<span id="binaryValue">128</span>
+            <input id="binarySlider" type="range" min="40" max="220" value="128" />
+          </label>
+          <div style="margin-top:10px">
+            <strong style="font-size:0.9rem">翻轉模式：</strong>
+            <div class="chips" id="flipChips" style="margin-top:6px">
+              <button class="chip active" data-flip="-1">無翻轉</button>
+              <button class="chip" data-flip="1">水平(flip=1)</button>
+              <button class="chip" data-flip="0">垂直(flip=0)</button>
+              <button class="chip" data-flip="2">兩者(flip=-1)</button>
+            </div>
+          </div>
+          <div class="chips" id="morphChips" style="margin-top:12px">
+            <button class="chip active" data-morph="none">原始</button>
+            <button class="chip" data-morph="dilate">膨脹</button>
+            <button class="chip" data-morph="erode">侵蝕</button>
+            <button class="chip" data-morph="open">開運算</button>
+            <button class="chip" data-morph="close">閉運算</button>
+          </div>
+          <p class="mini-note"><strong>翻轉記憶：</strong>flip(0)=上下翻、flip(1)=左右翻、flip(-1)=全翻。<br /><strong>開運算記憶：侵蝕→膨脹（去小白點）；閉運算：膨脹→侵蝕（補小黑洞）。</strong></p>
+          <button class="code-toggle" onclick="toggleCode('codeD')">⟨/⟩ 查看 Python 對照程式碼</button>
+          <div class="code-panel" id="codeD">
+<pre><code><span class="kw">import</span> cv2
+<span class="kw">import</span> numpy <span class="kw">as</span> np
+
+img = cv2.<span class="fn">cvtColor</span>(cv2.<span class="fn">imread</span>(<span class="st">"test.jpg"</span>), cv2.COLOR_BGR2RGB)
+h, w = img.shape[:<span class="num">2</span>]
+
+<span class="cm"># 旋轉 + 縮放</span>
+M = cv2.<span class="fn">getRotationMatrix2D</span>((w//<span class="num">2</span>, h//<span class="num">2</span>), <span class="num">30</span>, <span class="num">0.8</span>)
+rotated = cv2.<span class="fn">warpAffine</span>(img, M, (w, h))
+
+<span class="cm"># 翻轉 ★ 考試重點 ★</span>
+cv2.<span class="fn">flip</span>(img, <span class="num">0</span>)   <span class="cm"># 垂直翻轉（上下）</span>
+cv2.<span class="fn">flip</span>(img, <span class="num">1</span>)   <span class="cm"># 水平翻轉（左右）</span>
+cv2.<span class="fn">flip</span>(img, -<span class="num">1</span>)  <span class="cm"># 兩者都翻</span>
+
+<span class="cm"># 裁切</span>
+cropped = img[y1:y2, x1:x2]  <span class="cm"># NumPy 切片</span>
+
+<span class="cm"># 二值化</span>
+gray = cv2.<span class="fn">cvtColor</span>(img, cv2.COLOR_RGB2GRAY)
+_, binary = cv2.<span class="fn">threshold</span>(gray, <span class="num">127</span>, <span class="num">255</span>, cv2.THRESH_BINARY)
+
+<span class="cm"># 形態學操作</span>
+kernel = cv2.<span class="fn">getStructuringElement</span>(cv2.MORPH_RECT, (<span class="num">3</span>,<span class="num">3</span>))
+dilated = cv2.<span class="fn">dilate</span>(binary, kernel)
+eroded  = cv2.<span class="fn">erode</span>(binary, kernel)
+opened  = cv2.<span class="fn">morphologyEx</span>(binary, cv2.MORPH_OPEN, kernel)
+closed  = cv2.<span class="fn">morphologyEx</span>(binary, cv2.MORPH_CLOSE, kernel)</code></pre>
+          </div>
+        </div>
+        <div class="panel">
+          <canvas id="transformCanvas" width="520" height="320"></canvas>
+        </div>
+      </div>
+
+      <!-- LAB E: Histogram -->
+      <div class="lab-grid" style="margin-top:18px">
+        <div class="panel">
+          <h3>實驗室 E：直方圖與均衡化 ★ 考試重點 ★</h3>
+          <div class="chips" id="histChips">
+            <button class="chip active" data-hist="original">原始直方圖</button>
+            <button class="chip" data-hist="equalized">均衡化後</button>
+          </div>
+          <p class="mini-note" style="margin-top:12px">
+            <strong>直方圖</strong>顯示各亮度值（0~255）的像素數量分布。<br />
+            <strong>均衡化（equalizeHist）</strong>將分布拉平，使暗區也有豐富細節。<br />
+            觀察重點：均衡化後直方圖分布更均勻，影像對比更強。<br />
+            <strong>記憶：equalizeHist = 把餅乾切平，讓每個亮度都有份。</strong>
+          </p>
+          <button class="code-toggle" onclick="toggleCode('codeE')">⟨/⟩ 查看 Python 對照程式碼</button>
+          <div class="code-panel" id="codeE">
+<pre><code><span class="kw">import</span> cv2
+<span class="kw">import</span> numpy <span class="kw">as</span> np
+<span class="kw">import</span> matplotlib.pyplot <span class="kw">as</span> plt
+
+img = cv2.<span class="fn">imread</span>(<span class="st">"test.jpg"</span>, <span class="num">0</span>)  <span class="cm"># 灰階</span>
+
+<span class="cm"># 計算直方圖</span>
+hist = cv2.<span class="fn">calcHist</span>([img], [<span class="num">0</span>], <span class="kw">None</span>, [<span class="num">256</span>], [<span class="num">0</span>, <span class="num">256</span>])
+
+<span class="cm"># 直方圖均衡化 ★</span>
+equalized = cv2.<span class="fn">equalizeHist</span>(img)
+hist_eq = cv2.<span class="fn">calcHist</span>([equalized], [<span class="num">0</span>], <span class="kw">None</span>, [<span class="num">256</span>], [<span class="num">0</span>, <span class="num">256</span>])
+
+<span class="cm"># 可視化對比</span>
+plt.<span class="fn">subplot</span>(<span class="num">2</span>,<span class="num">2</span>,<span class="num">1</span>); plt.<span class="fn">imshow</span>(img, cmap=<span class="st">"gray"</span>); plt.<span class="fn">title</span>(<span class="st">"原圖"</span>)
+plt.<span class="fn">subplot</span>(<span class="num">2</span>,<span class="num">2</span>,<span class="num">2</span>); plt.<span class="fn">plot</span>(hist); plt.<span class="fn">title</span>(<span class="st">"原始直方圖"</span>)
+plt.<span class="fn">subplot</span>(<span class="num">2</span>,<span class="num">2</span>,<span class="num">3</span>); plt.<span class="fn">imshow</span>(equalized, cmap=<span class="st">"gray"</span>); plt.<span class="fn">title</span>(<span class="st">"均衡化"</span>)
+plt.<span class="fn">subplot</span>(<span class="num">2</span>,<span class="num">2</span>,<span class="num">4</span>); plt.<span class="fn">plot</span>(hist_eq); plt.<span class="fn">title</span>(<span class="st">"均衡化直方圖"</span>)
+plt.<span class="fn">tight_layout</span>(); plt.<span class="fn">show</span>()</code></pre>
+          </div>
+        </div>
+        <div class="panel">
+          <div class="hist-wrap">
+            <div>
+              <canvas id="histCanvas" width="250" height="160"></canvas>
+              <div class="canvas-label" id="histLabel">原始直方圖</div>
+            </div>
+            <div>
+              <canvas id="histImgCanvas" width="250" height="160"></canvas>
+              <div class="canvas-label" id="histImgLabel">原始影像預覽</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- LAB F: Threshold Methods -->
+      <div class="lab-grid" style="margin-top:18px">
+        <div class="panel">
+          <h3>實驗室 F：閾值方法比較 ★ 考試重點 ★</h3>
+          <div class="chips" id="threshMethodChips">
+            <button class="chip active" data-tmethod="binary">Binary（手動）</button>
+            <button class="chip" data-tmethod="otsu">Otsu（自動）</button>
+            <button class="chip" data-tmethod="adaptive">Adaptive（自適應）</button>
+          </div>
+          <label style="margin-top:14px" id="manualThreshWrap">手動門檻值：<span id="manualThreshValue">127</span>
+            <input id="manualThreshSlider" type="range" min="0" max="255" value="127" />
+          </label>
+          <div class="alert-box" id="otsuInfo" style="display:none">
+            <strong>Otsu 自動閾值</strong>：自動找出使前景與背景變異最大的最佳閾值。不需要手動調整，適合亮度分布雙峰的影像。<br />
+            <code style="color:var(--accent)">cv2.threshold(img, 0, 255, cv2.THRESH_BINARY + cv2.THRESH_OTSU)</code>
+          </div>
+          <div class="alert-box" id="adaptiveInfo" style="display:none">
+            <strong>自適應閾值</strong>：對影像中每個區域獨立計算閾值，適合光源不均勻的影像。<br />
+            <code style="color:var(--accent)">cv2.adaptiveThreshold(img, 255, cv2.ADAPTIVE_THRESH_GAUSSIAN_C, cv2.THRESH_BINARY, 11, 2)</code>
+          </div>
+          <p class="mini-note"><strong>三者差異記憶：</strong><br />Binary = 自己設門檻｜Otsu = 自動找最佳門檻｜Adaptive = 每個區塊各自設門檻</p>
+          <button class="code-toggle" onclick="toggleCode('codeF')">⟨/⟩ 查看 Python 對照程式碼</button>
+          <div class="code-panel" id="codeF">
+<pre><code><span class="kw">import</span> cv2
+
+img = cv2.<span class="fn">imread</span>(<span class="st">"test.jpg"</span>, <span class="num">0</span>)
+
+<span class="cm"># 1. 手動 Binary ★</span>
+_, binary = cv2.<span class="fn">threshold</span>(
+    img, <span class="num">127</span>, <span class="num">255</span>, cv2.THRESH_BINARY)
+
+<span class="cm"># 2. Otsu 自動閾值 ★★</span>
+<span class="cm"># threshold 參數設 0，讓 Otsu 自己算</span>
+_, otsu = cv2.<span class="fn">threshold</span>(
+    img, <span class="num">0</span>, <span class="num">255</span>,
+    cv2.THRESH_BINARY + cv2.THRESH_OTSU)
+
+<span class="cm"># 3. 自適應閾值 ★★</span>
+<span class="cm"># blockSize=11 (每格大小), C=2 (修正常數)</span>
+adaptive = cv2.<span class="fn">adaptiveThreshold</span>(
+    img, <span class="num">255</span>,
+    cv2.ADAPTIVE_THRESH_GAUSSIAN_C,
+    cv2.THRESH_BINARY, <span class="num">11</span>, <span class="num">2</span>)</code></pre>
+          </div>
+        </div>
+        <div class="panel">
+          <canvas id="threshCanvas" width="520" height="300"></canvas>
+        </div>
+      </div>
+
+      <!-- LAB G: Interpolation -->
+      <div style="margin-top:18px">
+        <div class="panel">
+          <h3>實驗室 G：插值方法比較（縮放時的差異）</h3>
+          <p style="margin:8px 0 4px;color:var(--muted)">將一張小圖放大 8 倍，三種插值方法的視覺差異一目了然。</p>
+          <div class="interp-wrap">
+            <div>
+              <canvas id="interpNearCanvas" width="200" height="160"></canvas>
+              <div class="canvas-label">INTER_NEAREST（最近鄰）<br /><span style="font-weight:400">像素化明顯，速度最快</span></div>
+            </div>
+            <div>
+              <canvas id="interpLinearCanvas" width="200" height="160"></canvas>
+              <div class="canvas-label">INTER_LINEAR（雙線性）<br /><span style="font-weight:400">最常用，平衡品質與速度</span></div>
+            </div>
+            <div>
+              <canvas id="interpCubicCanvas" width="200" height="160"></canvas>
+              <div class="canvas-label">INTER_CUBIC（雙三次）<br /><span style="font-weight:400">最平滑，計算量最大</span></div>
+            </div>
+          </div>
+          <button class="code-toggle" onclick="toggleCode('codeG')" style="margin-top:12px">⟨/⟩ 查看 Python 對照程式碼</button>
+          <div class="code-panel" id="codeG">
+<pre><code><span class="kw">import</span> cv2
+
+img = cv2.<span class="fn">imread</span>(<span class="st">"test.jpg"</span>)
+target_size = (<span class="num">640</span>, <span class="num">480</span>)
+
+<span class="cm"># 最近鄰：速度最快，馬賽克感強</span>
+nearest = cv2.<span class="fn">resize</span>(img, target_size,
+    interpolation=cv2.INTER_NEAREST)
+
+<span class="cm"># 雙線性：最常用，品質與速度平衡 ★</span>
+linear = cv2.<span class="fn">resize</span>(img, target_size,
+    interpolation=cv2.INTER_LINEAR)
+
+<span class="cm"># 雙三次：最平滑，計算量最大</span>
+cubic = cv2.<span class="fn">resize</span>(img, target_size,
+    interpolation=cv2.INTER_CUBIC)
+
+<span class="cm"># CNN 前處理常用 INTER_LINEAR</span>
+input_img = cv2.<span class="fn">resize</span>(img, (<span class="num">224</span>, <span class="num">224</span>),
+    interpolation=cv2.INTER_LINEAR)</code></pre>
+          </div>
+        </div>
+      </div>
+
+      <!-- Design cards (original) -->
+      <div class="footer-note" style="margin-top:18px">
+        <strong>互動教學地圖：</strong>下面整理每個關鍵字的操作與記憶口訣。
+      </div>
+
+      <div class="design-grid" style="margin-top:14px">
+        <article class="design-card"><h3>矩陣與像素</h3><p><strong>操作：</strong>拖拉像素大小。</p><p><strong>記憶：</strong>img.shape = (H, W, C)，dtype=uint8</p></article>
+        <article class="design-card"><h3>色彩空間轉換</h3><p><strong>操作：</strong>切換 RGB/Gray/HSV。</p><p><strong>記憶：</strong>cv2讀=BGR；PIL讀=RGB。</p></article>
+        <article class="design-card"><h3>幾何轉換</h3><p><strong>操作：</strong>旋轉縮放滑桿。</p><p><strong>記憶：</strong>getRotationMatrix2D + warpAffine。</p></article>
+        <article class="design-card"><h3>翻轉</h3><p><strong>操作：</strong>切換翻轉 chip。</p><p><strong>記憶：</strong>0=垂直, 1=水平, -1=全翻。</p></article>
+        <article class="design-card"><h3>降噪與平滑</h3><p><strong>操作：</strong>切換模糊。</p><p><strong>記憶：</strong>先降噪再找邊緣更穩定。</p></article>
+        <article class="design-card"><h3>卷積與濾波</h3><p><strong>操作：</strong>切換 kernel。</p><p><strong>記憶：</strong>卷積 = 小窗掃圖重新算。</p></article>
+        <article class="design-card"><h3>Canny 邊緣</h3><p><strong>操作：</strong>調雙閾值。</p><p><strong>記憶：</strong>threshold1=低門檻, threshold2=高門檻。</p></article>
+        <article class="design-card"><h3>直方圖均衡化</h3><p><strong>操作：</strong>切換均衡化。</p><p><strong>記憶：</strong>equalizeHist = 拉高對比度。</p></article>
+        <article class="design-card"><h3>Otsu 閾值</h3><p><strong>操作：</strong>切換 Otsu chip。</p><p><strong>記憶：</strong>THRESH_BINARY + THRESH_OTSU。</p></article>
+        <article class="design-card"><h3>二值化</h3><p><strong>操作：</strong>拉門檻值。</p><p><strong>記憶：</strong>Threshold 像過濾線。</p></article>
+        <article class="design-card"><h3>形態學操作</h3><p><strong>操作：</strong>切換膨脹/侵蝕/開/閉。</p><p><strong>記憶：</strong>開=侵蝕→膨脹；閉=膨脹→侵蝕。</p></article>
+        <article class="design-card"><h3>插值方法</h3><p><strong>操作：</strong>觀察三種放大效果。</p><p><strong>記憶：</strong>Nearest最快、Linear最常用、Cubic最平滑。</p></article>
+      </div>
+    </section>
+
+    <!-- ===== SECTION 3: Python Code Examples ===== -->
+    <section>
+      <h2>三、Python 最小可執行範例</h2>
+      <div class="four-grid">
+        <div class="mini-card">
+          <h3>影像讀取 / 儲存 / 陣列結構 ★</h3>
+<pre><code><span class="kw">import</span> cv2
+<span class="kw">import</span> numpy <span class="kw">as</span> np
+
+<span class="cm"># cv2 讀取 → BGR</span>
+img = cv2.<span class="fn">imread</span>(<span class="st">"test.jpg"</span>)
+<span class="fn">print</span>(img.shape)   <span class="cm"># (480, 640, 3)</span>
+<span class="fn">print</span>(img.dtype)   <span class="cm"># uint8</span>
+<span class="fn">print</span>(img[<span class="num">100</span>, <span class="num">200</span>])  <span class="cm"># [B, G, R]</span>
+
+<span class="cm"># PIL 讀取 → RGB</span>
+<span class="kw">from</span> PIL <span class="kw">import</span> Image
+pil = Image.<span class="fn">open</span>(<span class="st">"test.jpg"</span>)
+<span class="fn">print</span>(pil.size)    <span class="cm"># (640, 480) 注意寬高順序!</span>
+np_arr = np.<span class="fn">array</span>(pil)  <span class="cm"># shape=(480,640,3) RGB</span>
+
+<span class="cm"># 儲存</span>
+cv2.<span class="fn">imwrite</span>(<span class="st">"output.jpg"</span>, img)
+pil.<span class="fn">save</span>(<span class="st">"output.png"</span>)</code></pre>
+          <p class="mini-note">⚠️ cv2 是 BGR，PIL 是 RGB，混用時要明確轉換！</p>
+        </div>
+        <div class="mini-card">
+          <h3>OpenCV：Canny 邊緣偵測</h3>
+<pre><code><span class="kw">import</span> cv2
+<span class="kw">import</span> matplotlib.pyplot <span class="kw">as</span> plt
+
+img = cv2.<span class="fn">imread</span>(<span class="st">"test.jpg"</span>, <span class="num">0</span>)
+
+<span class="cm"># 步驟 1：降噪（建議先做）</span>
+blur = cv2.<span class="fn">GaussianBlur</span>(img, (<span class="num">5</span>,<span class="num">5</span>), <span class="num">0</span>)
+
+<span class="cm"># 步驟 2：Canny 雙閾值</span>
+edges = cv2.<span class="fn">Canny</span>(blur, <span class="num">50</span>, <span class="num">150</span>)
+
+plt.<span class="fn">subplot</span>(<span class="num">1</span>,<span class="num">3</span>,<span class="num">1</span>); plt.<span class="fn">imshow</span>(img, cmap=<span class="st">"gray"</span>)
+plt.<span class="fn">subplot</span>(<span class="num">1</span>,<span class="num">3</span>,<span class="num">2</span>); plt.<span class="fn">imshow</span>(blur, cmap=<span class="st">"gray"</span>)
+plt.<span class="fn">subplot</span>(<span class="num">1</span>,<span class="num">3</span>,<span class="num">3</span>); plt.<span class="fn">imshow</span>(edges, cmap=<span class="st">"gray"</span>)
+plt.<span class="fn">show</span>()</code></pre>
+          <p class="mini-note">Canny 流程：降噪 → Sobel 梯度 → 非極大值抑制 → 雙閾值 → 連通分析。</p>
+        </div>
+        <div class="mini-card">
+          <h3>閾值方法三合一比較</h3>
+<pre><code><span class="kw">import</span> cv2
+<span class="kw">import</span> matplotlib.pyplot <span class="kw">as</span> plt
+
+img = cv2.<span class="fn">imread</span>(<span class="st">"test.jpg"</span>, <span class="num">0</span>)
+
+<span class="cm"># 手動</span>
+_, th1 = cv2.<span class="fn">threshold</span>(img, <span class="num">127</span>, <span class="num">255</span>,
+                          cv2.THRESH_BINARY)
+<span class="cm"># Otsu（自動）</span>
+_, th2 = cv2.<span class="fn">threshold</span>(img, <span class="num">0</span>, <span class="num">255</span>,
+                          cv2.THRESH_BINARY+cv2.THRESH_OTSU)
+<span class="cm"># 自適應（局部）</span>
+th3 = cv2.<span class="fn">adaptiveThreshold</span>(img, <span class="num">255</span>,
+    cv2.ADAPTIVE_THRESH_GAUSSIAN_C,
+    cv2.THRESH_BINARY, <span class="num">11</span>, <span class="num">2</span>)
+
+titles = [<span class="st">"原圖"</span>,<span class="st">"Binary"</span>,<span class="st">"Otsu"</span>,<span class="st">"Adaptive"</span>]
+<span class="kw">for</span> i, (d, t) <span class="kw">in</span> <span class="fn">enumerate</span>([img,th1,th2,th3]):
+    plt.<span class="fn">subplot</span>(<span class="num">1</span>,<span class="num">4</span>,i+<span class="num">1</span>)
+    plt.<span class="fn">imshow</span>(d, cmap=<span class="st">"gray"</span>); plt.<span class="fn">title</span>(t)
+plt.<span class="fn">show</span>()</code></pre>
+          <p class="mini-note">Otsu 最適合亮暗分布明顯的影像；Adaptive 適合光源不均。</p>
+        </div>
+        <div class="mini-card">
+          <h3>CNN 前處理完整流程 ★</h3>
+<pre><code><span class="kw">import</span> cv2
+<span class="kw">import</span> numpy <span class="kw">as</span> np
+
+<span class="cm"># CNN 標準前處理流程</span>
+img_bgr = cv2.<span class="fn">imread</span>(<span class="st">"test.jpg"</span>)
+
+<span class="cm"># 步驟 1：BGR → RGB</span>
+img_rgb = cv2.<span class="fn">cvtColor</span>(img_bgr, cv2.COLOR_BGR2RGB)
+
+<span class="cm"># 步驟 2：resize 到模型輸入大小</span>
+img_resized = cv2.<span class="fn">resize</span>(img_rgb, (<span class="num">224</span>, <span class="num">224</span>),
+    interpolation=cv2.INTER_LINEAR)
+
+<span class="cm"># 步驟 3：正規化 [0,255] → [0.0, 1.0] ★</span>
+img_norm = img_resized.astype(np.float32) / <span class="num">255.0</span>
+
+<span class="cm"># 步驟 4：轉 tensor (HWC → CHW for PyTorch)</span>
+img_tensor = np.<span class="fn">transpose</span>(img_norm, (<span class="num">2</span>,<span class="num">0</span>,<span class="num">1</span>))
+<span class="cm"># shape: (3, 224, 224)</span>
+
+<span class="cm"># 步驟 5：新增 batch 維度</span>
+img_batch = np.<span class="fn">expand_dims</span>(img_tensor, axis=<span class="num">0</span>)
+<span class="cm"># shape: (1, 3, 224, 224)</span></code></pre>
+        </div>
+      </div>
+
+      <div class="footer-note">
+        <p><strong>工具庫定位：</strong><code>OpenCV (cv2)</code> 適合即時處理、幾何轉換、濾波、邊緣、形態學等完整影像流程。</p>
+        <p><strong>Pillow (PIL)</strong> 適合基本讀寫、縮放、裁切、格式轉換。注意：回傳 RGB（不是 BGR）。</p>
+        <p><strong>Scikit-image</strong> 適合教學、演算法理解與科學影像分析。<strong>NumPy</strong> 是所有庫的底層數值基礎。</p>
+      </div>
+
+      <div class="four-grid" style="margin-top:14px">
+        <div class="mini-card">
+          <h3>直方圖均衡化</h3>
+<pre><code><span class="kw">import</span> cv2
+
+img = cv2.<span class="fn">imread</span>(<span class="st">"test.jpg"</span>, <span class="num">0</span>)
+equalized = cv2.<span class="fn">equalizeHist</span>(img)
+
+<span class="cm"># 彩色影像：先轉 YCrCb，只對 Y 均衡化</span>
+img_yuv = cv2.<span class="fn">cvtColor</span>(
+    cv2.<span class="fn">imread</span>(<span class="st">"test.jpg"</span>), cv2.COLOR_BGR2YCrCb)
+img_yuv[:,:,<span class="num">0</span>] = cv2.<span class="fn">equalizeHist</span>(img_yuv[:,:,<span class="num">0</span>])
+result = cv2.<span class="fn">cvtColor</span>(img_yuv, cv2.COLOR_YCrCb2BGR)</code></pre>
+        </div>
+        <div class="mini-card">
+          <h3>翻轉與裁切</h3>
+<pre><code><span class="kw">import</span> cv2
+
+img = cv2.<span class="fn">imread</span>(<span class="st">"test.jpg"</span>)
+
+<span class="cm"># 翻轉 ★</span>
+h_flip = cv2.<span class="fn">flip</span>(img, <span class="num">1</span>)   <span class="cm"># 水平</span>
+v_flip = cv2.<span class="fn">flip</span>(img, <span class="num">0</span>)   <span class="cm"># 垂直</span>
+both   = cv2.<span class="fn">flip</span>(img, -<span class="num">1</span>)  <span class="cm"># 兩者</span>
+
+<span class="cm"># 裁切（NumPy 切片）★</span>
+<span class="cm"># img[y_start:y_end, x_start:x_end]</span>
+cropped = img[<span class="num">50</span>:<span class="num">200</span>, <span class="num">100</span>:<span class="num">400</span>]
+
+<span class="cm"># PIL 裁切</span>
+<span class="kw">from</span> PIL <span class="kw">import</span> Image
+pil = Image.<span class="fn">open</span>(<span class="st">"test.jpg"</span>)
+<span class="cm"># crop((left, upper, right, lower))</span>
+cropped_pil = pil.<span class="fn">crop</span>((<span class="num">100</span>, <span class="num">50</span>, <span class="num">400</span>, <span class="num">200</span>))</code></pre>
+        </div>
+        <div class="mini-card">
+          <h3>形態學操作</h3>
+<pre><code><span class="kw">import</span> cv2
+
+img = cv2.<span class="fn">imread</span>(<span class="st">"test.jpg"</span>, <span class="num">0</span>)
+_, binary = cv2.<span class="fn">threshold</span>(img, <span class="num">127</span>, <span class="num">255</span>,
+                            cv2.THRESH_BINARY)
+
+<span class="cm"># 結構元素</span>
+k = cv2.<span class="fn">getStructuringElement</span>(
+    cv2.MORPH_RECT, (<span class="num">3</span>,<span class="num">3</span>))
+
+<span class="cm"># 基本操作</span>
+dilated = cv2.<span class="fn">dilate</span>(binary, k)    <span class="cm"># 膨脹</span>
+eroded  = cv2.<span class="fn">erode</span>(binary, k)     <span class="cm"># 侵蝕</span>
+
+<span class="cm"># 組合操作 ★</span>
+<span class="cm"># 開運算：先侵蝕→膨脹（去除小白點）</span>
+opened = cv2.<span class="fn">morphologyEx</span>(binary, cv2.MORPH_OPEN, k)
+<span class="cm"># 閉運算：先膨脹→侵蝕（填補小黑洞）</span>
+closed = cv2.<span class="fn">morphologyEx</span>(binary, cv2.MORPH_CLOSE, k)</code></pre>
+        </div>
+        <div class="mini-card">
+          <h3>Scikit-image：進階處理</h3>
+<pre><code><span class="kw">from</span> skimage <span class="kw">import</span> io, color, filters
+<span class="kw">from</span> skimage.filters <span class="kw">import</span> threshold_otsu
+<span class="kw">import</span> matplotlib.pyplot <span class="kw">as</span> plt
+
+img = io.<span class="fn">imread</span>(<span class="st">"test.jpg"</span>)
+gray = color.<span class="fn">rgb2gray</span>(img)
+
+<span class="cm"># Otsu 閾值</span>
+thresh = <span class="fn">threshold_otsu</span>(gray)
+binary = gray > thresh
+
+<span class="cm"># Sobel 邊緣</span>
+edges = filters.<span class="fn">sobel</span>(gray)
+
+<span class="kw">for</span> i,(d,t) <span class="kw">in</span> <span class="fn">enumerate</span>(
+        [(gray,<span class="st">"Gray"</span>),(binary,<span class="st">"Otsu"</span>),(edges,<span class="st">"Sobel"</span>)]):
+    plt.<span class="fn">subplot</span>(<span class="num">1</span>,<span class="num">3</span>,i+<span class="num">1</span>)
+    plt.<span class="fn">imshow</span>(d, cmap=<span class="st">"gray"</span>); plt.<span class="fn">title</span>(t)
+plt.<span class="fn">show</span>()</code></pre>
+        </div>
+      </div>
+    </section>
+
+    <!-- ===== SECTION 4: Key Understanding ===== -->
+    <section>
+      <h2>四、關鍵理解強化</h2>
+      <div class="four-grid">
+        <div class="mini-card">
+          <h3>常見迷思 ★</h3>
+          <p><strong>cv2.imread = BGR，不是 RGB</strong><br />使用 matplotlib 顯示 cv2 讀取的圖要先 cvtColor！</p>
+          <p><strong>img.shape = (H, W, C)</strong><br />不是 (W, H, C)！H=rows=height，W=cols=width。</p>
+          <p><strong>PIL.size = (W, H)</strong><br />PIL 的 size 屬性順序和 shape 相反，要小心。</p>
+          <p><strong>灰階 ≠ 二值圖</strong><br />灰階有 256 個亮度層；二值化才是非黑即白。</p>
+          <p><strong>開運算 ≠ 先膨脹</strong><br />開運算 = 先侵蝕後膨脹；閉運算 = 先膨脹後侵蝕。</p>
+        </div>
+        <div class="mini-card">
+          <h3>概念對照表</h3>
+          <table>
+            <thead><tr><th>操作</th><th>目的</th><th>函式</th></tr></thead>
+            <tbody>
+              <tr><td>模糊</td><td>降低細節</td><td>GaussianBlur</td></tr>
+              <tr><td>銳化</td><td>強化邊界</td><td>filter2D</td></tr>
+              <tr><td>邊緣</td><td>抓輪廓線</td><td>Canny</td></tr>
+              <tr><td>均衡化</td><td>提升對比</td><td>equalizeHist</td></tr>
+              <tr><td>二值化</td><td>切前背景</td><td>threshold</td></tr>
+              <tr><td>膨脹</td><td>擴張區塊</td><td>dilate</td></tr>
+              <tr><td>侵蝕</td><td>收縮區塊</td><td>erode</td></tr>
+            </tbody>
+          </table>
+        </div>
+        <div class="mini-card">
+          <h3>img.shape 記憶表</h3>
+          <table>
+            <thead><tr><th>影像類型</th><th>shape</th></tr></thead>
+            <tbody>
+              <tr><td>彩色 (640×480)</td><td>(480, 640, 3)</td></tr>
+              <tr><td>灰階 (640×480)</td><td>(480, 640)</td></tr>
+              <tr><td>二值化</td><td>(480, 640) uint8</td></tr>
+              <tr><td>PIL.size</td><td>(640, 480) 順序相反</td></tr>
+            </tbody>
+          </table>
+          <div class="alert-box" style="margin-top:8px;font-size:0.88rem">
+            <strong>⚠️ 考試陷阱：</strong>shape[0]=H=rows，shape[1]=W=cols。cv2.resize(img, (W, H)) 參數是 (寬, 高)！
+          </div>
+        </div>
+        <div class="mini-card">
+          <h3>CNN 前處理要點 ★</h3>
+          <p><strong>為什麼除以 255？</strong><br />將像素從 [0,255] 壓縮到 [0.0,1.0]，有助於梯度穩定、加速收斂。</p>
+          <p><strong>為什麼先轉 RGB？</strong><br />大多數預訓練模型（ResNet、VGG）以 RGB 圖訓練，直接用 cv2 的 BGR 會導致色彩錯誤。</p>
+          <p><strong>HWC vs CHW：</strong><br />NumPy 預設 HWC；PyTorch 需要 CHW；TensorFlow 通常接受 HWC。</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- ===== SECTION 5: Advanced ===== -->
+    <section>
+      <h2>五、進階延伸（iPAS 應用導向）</h2>
+      <div class="pipeline">
+        <div class="step">原始影像</div>
+        <div class="step">前處理<br />色彩轉換 / 去噪 / 二值化</div>
+        <div class="step">特徵表示<br />邊緣 / 區域 / 直方圖</div>
+        <div class="step">AI 模型推論</div>
+        <div class="step">結果輸出<br />分類 / 偵測 / 分割</div>
+      </div>
+      <h3 style="margin-top:18px">CNN 標準前處理 Pipeline</h3>
+      <div class="cnn-pipeline">
+        <div class="cnn-step">imread<small>BGR 讀取</small></div>
+        <div class="cnn-step">cvtColor<small>BGR→RGB</small></div>
+        <div class="cnn-step">resize<small>224×224</small></div>
+        <div class="cnn-step">÷255<small>[0,1] 正規化</small></div>
+        <div class="cnn-step">transpose<small>HWC→CHW</small></div>
+        <div class="cnn-step">expand_dims<small>加 batch 維度</small></div>
+      </div>
+      <div class="footer-note">
+        <p><strong>影像分類 Image Classification：</strong>回答「這張圖是什麼」，重點在整張影像的代表特徵。</p>
+        <p><strong>物件偵測 Object Detection：</strong>回答「圖裡有什麼、在哪裡」，輸出類別 + bounding box。</p>
+        <p><strong>影像分割 Image Segmentation：</strong>回答「每個像素屬於哪一類」，與形態學、二值化高度相關。</p>
+        <p><strong>一句話總結：</strong>影像處理是 AI 看懂世界之前的整理、對齊與訊號強化。</p>
+      </div>
+    </section>
+
+    <!-- ===== SECTION 6: API Cheat Sheet ===== -->
+    <section>
+      <h2>六、API 速查表（可搜尋）</h2>
+      <p class="section-kicker">輸入功能或函式名稱，即時過濾結果。</p>
+      <div class="search-wrap">
+        <input class="search-input" id="apiSearch" placeholder="🔍 搜尋功能或函式名稱，例如：resize、flip、threshold…" oninput="filterAPI()" />
+      </div>
+      <div style="overflow:auto;border-radius:16px;">
+        <table id="apiTable">
+          <thead>
+            <tr>
+              <th>功能</th>
+              <th><span class="tag tag-cv">cv2</span> OpenCV</th>
+              <th><span class="tag tag-pil">PIL</span> Pillow</th>
+              <th><span class="tag tag-np">np</span> NumPy</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr><td>讀取影像</td><td>cv2.imread("f.jpg")<br /><small>⚠️ 回傳 BGR</small></td><td>Image.open("f.jpg")<br /><small>回傳 RGB</small></td><td>—</td></tr>
+            <tr><td>儲存影像</td><td>cv2.imwrite("out.jpg", img)</td><td>img.save("out.png")</td><td>—</td></tr>
+            <tr><td>轉灰階</td><td>cv2.cvtColor(img, COLOR_BGR2GRAY)</td><td>img.convert("L")</td><td>0.299R+0.587G+0.114B</td></tr>
+            <tr><td>BGR→RGB</td><td>cv2.cvtColor(img, COLOR_BGR2RGB)</td><td>—（PIL 預設 RGB）</td><td>img[:,:,::-1]</td></tr>
+            <tr><td>轉 HSV</td><td>cv2.cvtColor(img, COLOR_BGR2HSV)</td><td>img.convert("HSV")</td><td>—</td></tr>
+            <tr><td>影像尺寸</td><td>img.shape → (H,W,C)</td><td>img.size → (W,H)</td><td>arr.shape → (H,W,C)</td></tr>
+            <tr><td>資料類型</td><td>img.dtype → uint8</td><td>img.mode → "RGB"</td><td>arr.dtype</td></tr>
+            <tr><td>縮放</td><td>cv2.resize(img, (W,H), interpolation=…)</td><td>img.resize((W,H), Image.BILINEAR)</td><td>—</td></tr>
+            <tr><td>旋轉</td><td>getRotationMatrix2D + warpAffine</td><td>img.rotate(angle)</td><td>—</td></tr>
+            <tr><td>翻轉 ★</td><td>cv2.flip(img, 0/1/-1)</td><td>ImageOps.flip / mirror</td><td>np.flipud / np.fliplr</td></tr>
+            <tr><td>裁切 ★</td><td>img[y1:y2, x1:x2]</td><td>img.crop((L,U,R,D))</td><td>arr[y1:y2, x1:x2]</td></tr>
+            <tr><td>高斯模糊</td><td>cv2.GaussianBlur(img, (5,5), 0)</td><td>img.filter(GaussianBlur(2))</td><td>—</td></tr>
+            <tr><td>銳化</td><td>cv2.filter2D(img, -1, kernel)</td><td>img.filter(SHARPEN)</td><td>—</td></tr>
+            <tr><td>Canny 邊緣 ★</td><td>cv2.Canny(img, low, high)</td><td>—</td><td>—</td></tr>
+            <tr><td>Laplacian</td><td>cv2.Laplacian(img, cv2.CV_64F)</td><td>—</td><td>—</td></tr>
+            <tr><td>Binary 閾值 ★</td><td>cv2.threshold(img, 127, 255, THRESH_BINARY)</td><td>—</td><td>arr > 127</td></tr>
+            <tr><td>Otsu 閾值 ★</td><td>cv2.threshold(img, 0, 255, THRESH_BINARY+THRESH_OTSU)</td><td>—</td><td>skimage.filters.threshold_otsu</td></tr>
+            <tr><td>自適應閾值</td><td>cv2.adaptiveThreshold(img, 255, ADAPTIVE_THRESH_GAUSSIAN_C, THRESH_BINARY, 11, 2)</td><td>—</td><td>—</td></tr>
+            <tr><td>直方圖 ★</td><td>cv2.calcHist([img],[0],None,[256],[0,256])</td><td>—</td><td>np.histogram(arr.ravel(), 256)</td></tr>
+            <tr><td>均衡化 ★</td><td>cv2.equalizeHist(gray_img)</td><td>ImageOps.equalize(img)</td><td>exposure.equalize_hist (skimage)</td></tr>
+            <tr><td>膨脹</td><td>cv2.dilate(img, kernel)</td><td>img.filter(MaxFilter(3))</td><td>—</td></tr>
+            <tr><td>侵蝕</td><td>cv2.erode(img, kernel)</td><td>img.filter(MinFilter(3))</td><td>—</td></tr>
+            <tr><td>開運算 ★</td><td>cv2.morphologyEx(img, MORPH_OPEN, k)</td><td>—</td><td>—</td></tr>
+            <tr><td>閉運算 ★</td><td>cv2.morphologyEx(img, MORPH_CLOSE, k)</td><td>—</td><td>—</td></tr>
+            <tr><td>正規化 ★</td><td>img.astype(np.float32) / 255.0</td><td>—</td><td>arr / 255.0</td></tr>
+            <tr><td>HWC→CHW</td><td>—</td><td>—</td><td>np.transpose(arr, (2,0,1))</td></tr>
+            <tr><td>加 batch 維度</td><td>—</td><td>—</td><td>np.expand_dims(arr, axis=0)</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- ===== SECTION 7: Quiz ===== -->
+    <section>
+      <h2>七、考題模擬（iPAS 風格）</h2>
+      <p class="section-kicker">點選選項即可看到結果與解析。共 10 題，涵蓋高頻考點。</p>
+      <div class="quiz-meta">
+        <span class="quiz-score" id="quizScore">答對：0 / 0</span>
+        <div class="progress-bar"><div class="progress-fill" id="quizProgress" style="width:0%"></div></div>
+        <button class="code-toggle" onclick="resetQuiz()">🔄 重新作答</button>
+      </div>
+
+      <div id="quizContainer"></div>
+    </section>
+
+    <!-- Original deployment section -->
+    <section>
+      <h2>部署建議</h2>
+      <div class="concept-grid">
+        <article class="concept-card"><strong>Google Sites</strong>適合放課程首頁、概念架構與嵌入互動頁。</article>
+        <article class="concept-card"><strong>GitHub Pages</strong>免費部署這個 HTML 頁，最適合滑桿與畫布互動。</article>
+        <article class="concept-card"><strong>Google Colab</strong>適合嵌入 Python 實作，讓學習者直接改參數。</article>
+        <article class="concept-card"><strong>推薦組合</strong>Google Sites 做入口，GitHub Pages 放互動頁，Colab 放可跑程式。</article>
+      </div>
+    </section>
+
+  </main>
+
+  <script>
+    // ===== QUIZ DATA =====
+    const quizData = [
+      {
+        q: "Q1. cv2.imread('test.jpg') 回傳的陣列，通道順序是？",
+        opts: ["A) RGB", "B) BGR", "C) HSV", "D) GRB"],
+        ans: 1,
+        exp: "OpenCV 預設以 BGR 順序讀取影像。若要給 matplotlib 或大多數模型使用，需用 cv2.cvtColor(img, cv2.COLOR_BGR2RGB) 轉換。這是最常見的考試陷阱！"
+      },
+      {
+        q: "Q2. 對一張 height=480、width=640 的彩色影像，img.shape 回傳什麼？",
+        opts: ["A) (640, 480)", "B) (480, 640)", "C) (480, 640, 3)", "D) (3, 480, 640)"],
+        ans: 2,
+        exp: "NumPy 陣列的 shape 依序是 (rows, cols, channels) = (height, width, channels)。注意 PIL 的 size 順序相反，是 (width, height)！"
+      },
+      {
+        q: "Q3. 形態學「開運算 (Opening)」的操作順序是？",
+        opts: ["A) 膨脹 → 侵蝕", "B) 侵蝕 → 膨脹", "C) 膨脹 → 膨脹", "D) 侵蝕 → 侵蝕"],
+        ans: 1,
+        exp: "開運算 = 先侵蝕後膨脹，用於去除小白點（前景雜訊）。閉運算則相反（先膨脹後侵蝕），用於填補小黑洞。記憶：開 = 侵→脹；閉 = 脹→侵。"
+      },
+      {
+        q: "Q4. cv2.Canny(img, 50, 150) 中兩個數字代表什麼？",
+        opts: ["A) kernel 寬度與高度", "B) 低閾值與高閾值", "C) sigma 與偏移量", "D) 迭代次數與強度"],
+        ans: 1,
+        exp: "Canny 需設定雙閾值：threshold1（低閾值）用來排除弱邊緣，threshold2（高閾值）用來保留強邊緣。介於兩者之間的像素若與強邊緣相連才保留。"
+      },
+      {
+        q: "Q5. cv2.flip(img, 0) 的效果是？",
+        opts: ["A) 水平翻轉（左右）", "B) 垂直翻轉（上下）", "C) 兩者都翻", "D) 旋轉 90°"],
+        ans: 1,
+        exp: "flip 參數：0 = 垂直翻轉（上下翻，沿水平軸）；1 = 水平翻轉（左右翻，沿垂直軸）；-1 = 兩者都翻。記憶：0 像躺下，就是上下翻。"
+      },
+      {
+        q: "Q6. Otsu 閾值的主要特點是？",
+        opts: ["A) 需要手動設定門檻值", "B) 自動計算使類間變異最大的最佳閾值", "C) 對每個像素個別計算閾值", "D) 只能用於彩色影像"],
+        ans: 1,
+        exp: "Otsu 通過最大化前景與背景的類間變異（inter-class variance）自動找出最佳閾值。自適應閾值才是對每個局部區域分別計算。使用方式：cv2.threshold(img, 0, 255, THRESH_BINARY+THRESH_OTSU)。"
+      },
+      {
+        q: "Q7. CNN 輸入前將像素除以 255 的目的是？",
+        opts: ["A) 將像素值從 [0,255] 壓縮到 [0.0,1.0]", "B) 增加影像亮度", "C) 轉換色彩空間", "D) 去除影像雜訊"],
+        ans: 0,
+        exp: "正規化到 [0,1] 有助於梯度穩定、加速收斂，避免數值尺度差異造成訓練困難。程式碼：img.astype(np.float32) / 255.0"
+      },
+      {
+        q: "Q8. 灰階公式 gray = 0.299R + 0.587G + 0.114B，G（綠）的權重最高，原因是？",
+        opts: ["A) 攝影機對綠色感測器數量最多", "B) 人眼對綠光（中波長）的亮度感知最靈敏", "C) 綠色像素計算最簡單", "D) 習慣問題，沒有科學根據"],
+        ans: 1,
+        exp: "人眼的感光細胞對中波長（綠色）最敏感，因此在亮度感知中綠色佔的比重最高。這個加權公式模擬人眼感知亮度的方式。"
+      },
+      {
+        q: "Q9. 使用 PIL.Image.open() 讀取影像，色彩通道順序是？",
+        opts: ["A) BGR（同 OpenCV）", "B) RGB", "C) HSV", "D) 依圖片格式而定，不固定"],
+        ans: 1,
+        exp: "PIL/Pillow 的影像格式是 RGB，與 OpenCV 的 BGR 相反。從 cv2 轉到 PIL 需先用 cvtColor 轉為 RGB，反之亦然。混用時不注意通道順序會導致色彩顯示錯誤。"
+      },
+      {
+        q: "Q10. 下列哪個 cv2.resize 插值方法，放大後邊緣最清晰但方塊感最強？",
+        opts: ["A) cv2.INTER_NEAREST", "B) cv2.INTER_LINEAR", "C) cv2.INTER_CUBIC", "D) cv2.INTER_LANCZOS4"],
+        ans: 0,
+        exp: "INTER_NEAREST（最近鄰插值）直接複製最近的像素，速度最快但會有明顯的像素化/馬賽克感。CNN 前處理常用 INTER_LINEAR（雙線性）作為品質與速度的平衡點。"
+      }
+    ];
+
+    let quizAnswered = 0;
+    let quizCorrect = 0;
+
+    function buildQuiz() {
+      const container = document.getElementById("quizContainer");
+      container.innerHTML = "";
+      quizAnswered = 0; quizCorrect = 0;
+      updateScore();
+      quizData.forEach((item, qi) => {
+        const div = document.createElement("div");
+        div.className = "quiz-q";
+        div.innerHTML = `<h4>${item.q}</h4>
+          <div class="quiz-options">
+            ${item.opts.map((o, oi) => `<button class="quiz-option" data-qi="${qi}" data-oi="${oi}" onclick="answerQuiz(${qi},${oi})">${o}</button>`).join("")}
+          </div>
+          <div class="quiz-explanation" id="exp${qi}">✅ <strong>解析：</strong>${item.exp}</div>`;
+        container.appendChild(div);
+      });
+    }
+
+    function answerQuiz(qi, oi) {
+      const item = quizData[qi];
+      const opts = document.querySelectorAll(`.quiz-option[data-qi="${qi}"]`);
+      opts.forEach(b => b.disabled = true);
+      opts[item.ans].classList.add("correct");
+      if (oi !== item.ans) opts[oi].classList.add("wrong");
+      document.getElementById(`exp${qi}`).classList.add("show");
+      quizAnswered++;
+      if (oi === item.ans) quizCorrect++;
+      updateScore();
+    }
+
+    function updateScore() {
+      document.getElementById("quizScore").textContent = `答對：${quizCorrect} / ${quizAnswered}`;
+      document.getElementById("quizProgress").style.width = quizAnswered > 0 ? `${(quizAnswered/quizData.length)*100}%` : "0%";
+    }
+
+    function resetQuiz() { buildQuiz(); }
+
+    // ===== API SEARCH =====
+    function filterAPI() {
+      const q = document.getElementById("apiSearch").value.toLowerCase();
+      document.querySelectorAll("#apiTable tbody tr").forEach(row => {
+        row.classList.toggle("api-row-hidden", q && !row.textContent.toLowerCase().includes(q));
+      });
+    }
+
+    // ===== CODE TOGGLE =====
+    function toggleCode(id) {
+      const el = document.getElementById(id);
+      el.classList.toggle("open");
+    }
+
+    // ===== CANVAS SETUP =====
+    const pixelCanvas = document.getElementById("pixelCanvas");
+    const pixelCtx = pixelCanvas.getContext("2d");
+    const filterCanvas = document.getElementById("filterCanvas");
+    const filterCtx = filterCanvas.getContext("2d");
+    const colorCanvas = document.getElementById("colorCanvas");
+    const colorCtx = colorCanvas.getContext("2d");
+    const transformCanvas = document.getElementById("transformCanvas");
+    const transformCtx = transformCanvas.getContext("2d");
+    const histCanvas = document.getElementById("histCanvas");
+    const histCtx = histCanvas.getContext("2d");
+    const histImgCanvas = document.getElementById("histImgCanvas");
+    const histImgCtx = histImgCanvas.getContext("2d");
+    const threshCanvas = document.getElementById("threshCanvas");
+    const threshCtx = threshCanvas.getContext("2d");
+    const interpNearCanvas = document.getElementById("interpNearCanvas");
+    const interpLinearCanvas = document.getElementById("interpLinearCanvas");
+    const interpCubicCanvas = document.getElementById("interpCubicCanvas");
+
+    // Sliders
+    const rSlider = document.getElementById("rSlider");
+    const gSlider = document.getElementById("gSlider");
+    const bSlider = document.getElementById("bSlider");
+    const pixelSlider = document.getElementById("pixelSlider");
+    const thresholdSlider = document.getElementById("thresholdSlider");
+    const cannyHighSlider = document.getElementById("cannyHighSlider");
+    const hueSlider = document.getElementById("hueSlider");
+    const satSlider = document.getElementById("satSlider");
+    const rotateSlider = document.getElementById("rotateSlider");
+    const scaleSlider = document.getElementById("scaleSlider");
+    const binarySlider = document.getElementById("binarySlider");
+    const manualThreshSlider = document.getElementById("manualThreshSlider");
+
+    const valueEls = {
+      r: document.getElementById("rValue"),
+      g: document.getElementById("gValue"),
+      b: document.getElementById("bValue"),
+      pixel: document.getElementById("pixelValue"),
+      threshold: document.getElementById("thresholdValue"),
+      cannyHigh: document.getElementById("cannyHighValue"),
+      hue: document.getElementById("hueValue"),
+      sat: document.getElementById("satValue"),
+      rotate: document.getElementById("rotateValue"),
+      scale: document.getElementById("scaleValue"),
+      binary: document.getElementById("binaryValue"),
+      manualThresh: document.getElementById("manualThreshValue")
+    };
+
+    let currentKernel = "original";
+    let currentColorMode = "rgb";
+    let currentMorph = "none";
+    let currentFlip = -1; // -1 = no flip
+    let currentHistMode = "original";
+    let currentThreshMethod = "binary";
+
+    // ===== SHARED: Build synthetic grayscale image =====
+    function buildBaseImageData(w, h) {
+      const imageData = new ImageData(w, h);
+      const data = imageData.data;
+      for (let y = 0; y < h; y++) {
+        for (let x = 0; x < w; x++) {
+          const idx = (y * w + x) * 4;
+          const dx = x - w * 0.35, dy = y - h * 0.45;
+          let v = 210 - Math.sqrt(dx*dx+dy*dy) * 1.1;
+          if (x > w*0.58 && x < w*0.86 && y > h*0.22 && y < h*0.74) v = 85;
+          if ((x-w*0.25)**2 + (y-h*0.28)**2 < 42**2) v = 40;
+          if (Math.abs(y - (0.72*x - 20)) < 7) v = 245;
+          v = Math.max(20, Math.min(255, v));
+          data[idx] = v; data[idx+1] = v; data[idx+2] = v; data[idx+3] = 255;
+        }
+      }
+      return imageData;
+    }
+
+    function hslToRgb(h, s, l) {
+      const hue = ((h%360)+360)%360, sat = s/100, lig = l/100;
+      const c = (1-Math.abs(2*lig-1))*sat, x = c*(1-Math.abs((hue/60)%2-1)), m = lig-c/2;
+      let r1=0,g1=0,b1=0;
+      if(hue<60){r1=c;g1=x;}else if(hue<120){r1=x;g1=c;}else if(hue<180){g1=c;b1=x;}
+      else if(hue<240){g1=x;b1=c;}else if(hue<300){r1=x;b1=c;}else{r1=c;b1=x;}
+      return {r:Math.round((r1+m)*255),g:Math.round((g1+m)*255),b:Math.round((b1+m)*255)};
+    }
+    function rgbToGray(r,g,b){return Math.round(0.299*r+0.587*g+0.114*b);}
+
+    function convolveGray(srcData, width, height, kernel, factor=1, bias=0) {
+      const output = new Uint8ClampedArray(srcData.length);
+      const side = Math.sqrt(kernel.length), half = Math.floor(side/2);
+      for (let y=0; y<height; y++) {
+        for (let x=0; x<width; x++) {
+          let sum=0;
+          for (let ky=0; ky<side; ky++) for (let kx=0; kx<side; kx++) {
+            const px=Math.min(width-1,Math.max(0,x+kx-half));
+            const py=Math.min(height-1,Math.max(0,y+ky-half));
+            sum += srcData[(py*width+px)*4] * kernel[ky*side+kx];
+          }
+          const out=Math.max(0,Math.min(255,sum/factor+bias));
+          const oIdx=(y*width+x)*4;
+          output[oIdx]=out; output[oIdx+1]=out; output[oIdx+2]=out; output[oIdx+3]=255;
+        }
+      }
+      return output;
+    }
+
+    // ===== LAB A: Pixel =====
+    function drawPixelLab() {
+      const r=Number(rSlider.value), g=Number(gSlider.value), b=Number(bSlider.value), size=Number(pixelSlider.value);
+      valueEls.r.textContent=r; valueEls.g.textContent=g; valueEls.b.textContent=b; valueEls.pixel.textContent=size;
+      pixelCtx.clearRect(0,0,pixelCanvas.width,pixelCanvas.height);
+      for (let y=0; y<pixelCanvas.height; y+=size) for (let x=0; x<pixelCanvas.width; x+=size) {
+        const mixR=Math.min(255,r+Math.round((x/pixelCanvas.width)*60));
+        const mixG=Math.min(255,g+Math.round((y/pixelCanvas.height)*70));
+        const mixB=Math.min(255,b+Math.round(((x+y)/(pixelCanvas.width+pixelCanvas.height))*80));
+        pixelCtx.fillStyle=`rgb(${mixR},${mixG},${mixB})`;
+        pixelCtx.fillRect(x,y,size,size);
+      }
+      pixelCtx.fillStyle="rgba(255,255,255,0.82)"; pixelCtx.fillRect(18,18,172,74);
+      pixelCtx.fillStyle="#1e2430"; pixelCtx.font="bold 18px Segoe UI"; pixelCtx.fillText("RGB 混色觀察",30,44);
+      pixelCtx.font="14px Segoe UI"; pixelCtx.fillText(`R:${r}  G:${g}  B:${b}`,30,66);
+      pixelCtx.fillText(`Pixel size: ${size}px`,30,86);
+    }
+
+    // ===== LAB B: Filter + Canny =====
+    function cannySimulate(srcData, width, height, low, high) {
+      // Sobel-based Canny simulation
+      const blurred = convolveGray(srcData, width, height, [1,2,1,2,4,2,1,2,1], 16, 0);
+      const Gx = convolveGray(blurred, width, height, [-1,0,1,-2,0,2,-1,0,1], 1, 0);
+      const Gy = convolveGray(blurred, width, height, [-1,-2,-1,0,0,0,1,2,1], 1, 0);
+      const output = new Uint8ClampedArray(srcData.length);
+      for (let y=0; y<height; y++) for (let x=0; x<width; x++) {
+        const i = (y*width+x)*4;
+        const mag = Math.min(255, Math.sqrt(Gx[i]*Gx[i] + Gy[i]*Gy[i]) * 1.5);
+        const v = mag > high ? 255 : (mag > low ? 160 : 0);
+        output[i]=v; output[i+1]=v; output[i+2]=v; output[i+3]=255;
+      }
+      return output;
+    }
+
+    function drawFilterLab() {
+      const base = buildBaseImageData(filterCanvas.width, filterCanvas.height);
+      let data = base.data;
+      const width = base.width, height = base.height;
+      const threshold = Number(thresholdSlider.value);
+      const cannyHigh = Number(cannyHighSlider.value);
+      valueEls.threshold.textContent = threshold;
+      valueEls.cannyHigh.textContent = cannyHigh;
+
+      if (currentKernel==="blur") {
+        data = convolveGray(data,width,height,[1,2,1,2,4,2,1,2,1],16,0);
+      } else if (currentKernel==="sharpen") {
+        data = convolveGray(data,width,height,[0,-1,0,-1,5,-1,0,-1,0],1,0);
+      } else if (currentKernel==="edge") {
+        const edgeData = convolveGray(data,width,height,[-1,-1,-1,-1,8,-1,-1,-1,-1],1,128);
+        for (let i=0; i<edgeData.length; i+=4) {
+          const v = edgeData[i]>threshold ? 255 : 20;
+          edgeData[i]=v; edgeData[i+1]=v; edgeData[i+2]=v;
+        }
+        data = edgeData;
+      } else if (currentKernel==="canny") {
+        data = cannySimulate(data, width, height, threshold, cannyHigh);
+      }
+
+      filterCtx.putImageData(new ImageData(data,width,height),0,0);
+      filterCtx.fillStyle="rgba(255,255,255,0.86)"; filterCtx.fillRect(16,16,250,78);
+      filterCtx.fillStyle="#1e2430"; filterCtx.font="bold 18px Segoe UI";
+      filterCtx.fillText(`模式：${kernelLabel(currentKernel)}`,28,42);
+      filterCtx.font="14px Segoe UI";
+      filterCtx.fillText(currentKernel==="canny"?`Low:${threshold} High:${cannyHigh}`:`Threshold: ${threshold}`,28,66);
+      filterCtx.fillText(currentKernel==="canny"?"雙閾值：強邊緣保留、弱邊緣排除":"觀察亮度變化與輪廓保留",28,86);
+    }
+
+    function kernelLabel(n){return{original:"原圖",blur:"模糊",sharpen:"銳化",edge:"邊緣(Laplacian)",canny:"Canny 邊緣"}[n];}
+
+    // ===== LAB C: Color =====
+    function drawColorLab() {
+      const hueShift=Number(hueSlider.value), sat=Number(satSlider.value);
+      const w=colorCanvas.width, h=colorCanvas.height;
+      valueEls.hue.textContent=hueShift; valueEls.sat.textContent=sat;
+      colorCtx.clearRect(0,0,w,h);
+      if (currentColorMode==="hsv") {
+        const bandH=h/3;
+        ["H","S","V"].forEach((ch,band)=>{
+          for(let y=0;y<bandH;y+=10) for(let x=0;x<w;x+=10){
+            const hue=(hueShift+(x/w)*240+(y/bandH)*50)%360;
+            const value=35+(1-y/bandH)*55;
+            let fill;
+            if(ch==="H"){const rgb=hslToRgb(hue,100,50);fill=`rgb(${rgb.r},${rgb.g},${rgb.b})`;}
+            else if(ch==="S"){const l=Math.round((x/w)*255);fill=`rgb(${l},${l},${l})`;}
+            else{const l=Math.round((value/100)*255);fill=`rgb(${l},${l},${l})`;}
+            colorCtx.fillStyle=fill; colorCtx.fillRect(x,y+band*bandH,10,10);
+          }
+          colorCtx.fillStyle="rgba(255,255,255,0.86)"; colorCtx.fillRect(16,band*bandH+14,128,34);
+          colorCtx.fillStyle="#1e2430"; colorCtx.font="bold 18px Segoe UI";
+          colorCtx.fillText(`${ch} Channel`,28,band*bandH+37);
+        });
+      } else {
+        const cell=20;
+        for(let y=0;y<h;y+=cell) for(let x=0;x<w;x+=cell){
+          const hue=(hueShift+(x/w)*220+(y/h)*60)%360;
+          const light=32+(y/h)*38;
+          const rgb=hslToRgb(hue,sat,light);
+          if(currentColorMode==="gray"){const g=rgbToGray(rgb.r,rgb.g,rgb.b);colorCtx.fillStyle=`rgb(${g},${g},${g})`;}
+          else colorCtx.fillStyle=`rgb(${rgb.r},${rgb.g},${rgb.b})`;
+          colorCtx.fillRect(x,y,cell,cell);
+        }
+      }
+      colorCtx.strokeStyle="rgba(30,36,48,0.15)";
+      for(let x=0;x<=w;x+=40){colorCtx.beginPath();colorCtx.moveTo(x,0);colorCtx.lineTo(x,h);colorCtx.stroke();}
+      for(let y=0;y<=h;y+=40){colorCtx.beginPath();colorCtx.moveTo(0,y);colorCtx.lineTo(w,y);colorCtx.stroke();}
+      colorCtx.fillStyle="rgba(255,255,255,0.88)"; colorCtx.fillRect(16,16,250,76);
+      colorCtx.fillStyle="#1e2430"; colorCtx.font="bold 18px Segoe UI";
+      colorCtx.fillText(`模式：${currentColorMode.toUpperCase()}`,28,42);
+      colorCtx.font="14px Segoe UI"; colorCtx.fillText(`Hue shift: ${hueShift}°`,28,66);
+      colorCtx.fillText(`Saturation: ${sat}%`,28,86);
+    }
+
+    // ===== LAB D: Transform + Flip + Morph =====
+    function thresholdBinary(imageData, threshold, outW, outH) {
+      const binary = new Uint8Array(outW * outH);
+      for (let y=0; y<outH; y++) for (let x=0; x<outW; x++)
+        binary[y*outW+x] = imageData.data[(y*outW+x)*4] > threshold ? 1 : 0;
+      return binary;
+    }
+
+    function morphOnce(binary, width, height, type) {
+      const out = new Uint8Array(binary.length);
+      for (let y=0; y<height; y++) for (let x=0; x<width; x++) {
+        let count=0, total=0;
+        for (let ky=-1; ky<=1; ky++) for (let kx=-1; kx<=1; kx++) {
+          const px=x+kx, py=y+ky;
+          if (px>=0&&px<width&&py>=0&&py<height){total++;count+=binary[py*width+px];}
+        }
+        out[y*width+x] = type==="dilate" ? (count>0?1:0) : (count===total?1:0);
+      }
+      return out;
+    }
+
+    function applyMorph(binary, w, h, type) {
+      if(type==="none") return binary;
+      if(type==="dilate"||type==="erode") return morphOnce(binary,w,h,type);
+      if(type==="open") return morphOnce(morphOnce(binary,w,h,"erode"),w,h,"dilate");
+      return morphOnce(morphOnce(binary,w,h,"dilate"),w,h,"erode");
+    }
+
+    function applyFlip(imageData, w, h, flipMode) {
+      if (flipMode === -1) return imageData; // no flip (using -1 as sentinel)
+      const data = imageData.data;
+      const out = new Uint8ClampedArray(data.length);
+      for (let y=0; y<h; y++) for (let x=0; x<w; x++) {
+        const srcX = (flipMode===1||flipMode===2) ? w-1-x : x;
+        const srcY = (flipMode===0||flipMode===2) ? h-1-y : y;
+        const si = (srcY*w+srcX)*4, di = (y*w+x)*4;
+        out[di]=data[si]; out[di+1]=data[si+1]; out[di+2]=data[si+2]; out[di+3]=255;
+      }
+      return new ImageData(out, w, h);
+    }
+
+    function drawTransformLab() {
+      const angle=Number(rotateSlider.value), scale=Number(scaleSlider.value)/100;
+      const threshold=Number(binarySlider.value);
+      valueEls.rotate.textContent=angle; valueEls.scale.textContent=Math.round(scale*100); valueEls.binary.textContent=threshold;
+      const w=transformCanvas.width, h=transformCanvas.height;
+      transformCtx.clearRect(0,0,w,h);
+      transformCtx.fillStyle="#fff"; transformCtx.fillRect(0,0,w,h);
+
+      // Left: Geometric transform + flip
+      transformCtx.strokeStyle="rgba(30,36,48,0.08)";
+      for(let x=20;x<w/2-10;x+=24){transformCtx.beginPath();transformCtx.moveTo(x,18);transformCtx.lineTo(x,h-18);transformCtx.stroke();}
+      for(let y=18;y<h-18;y+=24){transformCtx.beginPath();transformCtx.moveTo(20,y);transformCtx.lineTo(w/2-10,y);transformCtx.stroke();}
+
+      transformCtx.save();
+      transformCtx.translate(w*0.25, h*0.54);
+      // Apply flip
+      if (currentFlip===1) transformCtx.scale(-1,1);
+      else if (currentFlip===0) transformCtx.scale(1,-1);
+      else if (currentFlip===2) transformCtx.scale(-1,-1);
+      transformCtx.rotate((angle*Math.PI)/180);
+      transformCtx.scale(scale,scale);
+      transformCtx.fillStyle="rgba(200,92,61,0.88)"; transformCtx.fillRect(-70,-42,140,84);
+      transformCtx.fillStyle="rgba(43,122,120,0.92)"; transformCtx.beginPath();
+      transformCtx.arc(58,-54,28,0,Math.PI*2); transformCtx.fill();
+      transformCtx.fillStyle="#1e2430"; transformCtx.beginPath();
+      transformCtx.moveTo(-34,62);transformCtx.lineTo(0,20);transformCtx.lineTo(34,62);
+      transformCtx.closePath(); transformCtx.fill();
+      transformCtx.restore();
+
+      transformCtx.fillStyle="rgba(255,255,255,0.92)"; transformCtx.fillRect(18,16,220,80);
+      transformCtx.fillStyle="#1e2430"; transformCtx.font="bold 17px Segoe UI"; transformCtx.fillText("幾何轉換 + 翻轉",30,40);
+      transformCtx.font="13px Segoe UI";
+      transformCtx.fillText(`Rotate: ${angle}°  Scale: ${Math.round(scale*100)}%`,30,60);
+      transformCtx.fillText(`Flip: ${["無","水平","垂直","兩者"][["-1","1","0","2"].indexOf(String(currentFlip))]}`,30,80);
+
+      // Right: Binary + Morph
+      const pW=200, pH=200;
+      const grayData = buildBaseImageData(pW, pH);
+      const binary = thresholdBinary(grayData, threshold, pW, pH);
+      const morphed = applyMorph(binary, pW, pH, currentMorph);
+      const out = new ImageData(pW, pH);
+      for (let i=0; i<morphed.length; i++) {
+        const idx=i*4, v=morphed[i]?255:18;
+        out.data[idx]=v; out.data[idx+1]=v; out.data[idx+2]=v; out.data[idx+3]=255;
+      }
+      const x0=286, y0=40;
+      transformCtx.putImageData(out,x0,y0);
+      transformCtx.strokeStyle="rgba(30,36,48,0.18)"; transformCtx.strokeRect(x0,y0,pW,pH);
+      transformCtx.fillStyle="rgba(255,255,255,0.92)"; transformCtx.fillRect(272,252,224,52);
+      transformCtx.fillStyle="#1e2430"; transformCtx.font="bold 16px Segoe UI";
+      transformCtx.fillText(`二值化 + ${morphLabel(currentMorph)}`,286,272);
+      transformCtx.font="13px Segoe UI"; transformCtx.fillText(`Threshold: ${threshold}`,286,292);
+    }
+
+    function morphLabel(n){return{none:"原始",dilate:"膨脹",erode:"侵蝕",open:"開運算",close:"閉運算"}[n];}
+
+    // ===== LAB E: Histogram =====
+    function computeHistogram(imageData) {
+      const hist = new Array(256).fill(0);
+      for (let i=0; i<imageData.data.length; i+=4) hist[imageData.data[i]]++;
+      return hist;
+    }
+
+    function equalizeHistogram(imageData, w, h) {
+      const hist = computeHistogram(imageData);
+      const total = w*h;
+      let cdf = 0;
+      const lut = new Array(256);
+      for (let i=0; i<256; i++) { cdf+=hist[i]; lut[i]=Math.round((cdf/total)*255); }
+      const out = new ImageData(w, h);
+      for (let i=0; i<imageData.data.length; i+=4) {
+        const v=lut[imageData.data[i]];
+        out.data[i]=v; out.data[i+1]=v; out.data[i+2]=v; out.data[i+3]=255;
+      }
+      return out;
+    }
+
+    function drawHistogram(ctx, hist, canvas, title, color) {
+      const w=canvas.width, h=canvas.height;
+      ctx.clearRect(0,0,w,h);
+      ctx.fillStyle="#fff"; ctx.fillRect(0,0,w,h);
+      const maxVal=Math.max(...hist);
+      const barW=Math.max(1, w/256);
+      const padTop=24, padBot=18;
+      for (let i=0; i<256; i++) {
+        const bh=((hist[i]/maxVal)*(h-padTop-padBot));
+        ctx.fillStyle=color||`hsl(${i*1.4},60%,45%)`;
+        ctx.fillRect(i*barW, h-padBot-bh, barW, bh);
+      }
+      ctx.fillStyle="rgba(255,255,255,0.9)"; ctx.fillRect(0,0,w,22);
+      ctx.fillStyle="#1e2430"; ctx.font="bold 13px Segoe UI"; ctx.fillText(title||"直方圖",8,16);
+    }
+
+    function drawHistLab() {
+      const w=250, h=160;
+      const imageData = buildBaseImageData(w, h);
+      const hist = computeHistogram(imageData);
+
+      if (currentHistMode==="original") {
+        drawHistogram(histCtx, hist, histCanvas, "原始直方圖", "rgba(43,122,120,0.75)");
+        histImgCtx.putImageData(imageData, 0, 0);
+        document.getElementById("histLabel").textContent="原始直方圖";
+        document.getElementById("histImgLabel").textContent="原始影像預覽";
+      } else {
+        const eqData = equalizeHistogram(imageData, w, h);
+        const eqHist = computeHistogram(eqData);
+        drawHistogram(histCtx, eqHist, histCanvas, "均衡化後直方圖", "rgba(200,92,61,0.75)");
+        histImgCtx.putImageData(eqData, 0, 0);
+        document.getElementById("histLabel").textContent="均衡化後直方圖（分布更均勻）";
+        document.getElementById("histImgLabel").textContent="均衡化後影像（對比更強）";
+      }
+    }
+
+    // ===== LAB F: Threshold Methods =====
+    function otsuThreshold(imageData, w, h) {
+      const hist = computeHistogram(imageData);
+      const total = w*h;
+      let sumAll=0;
+      for(let i=0;i<256;i++) sumAll+=i*hist[i];
+      let sumB=0, wB=0, maxVar=0, bestT=0;
+      for (let t=0; t<256; t++) {
+        wB+=hist[t]; if(wB===0) continue;
+        const wF=total-wB; if(wF===0) break;
+        sumB+=t*hist[t];
+        const mB=sumB/wB, mF=(sumAll-sumB)/wF;
+        const varBetween=wB*wF*(mB-mF)**2;
+        if(varBetween>maxVar){maxVar=varBetween;bestT=t;}
+      }
+      return bestT;
+    }
+
+    function adaptiveThresh(imageData, w, h, blockSize=31, C=10) {
+      const out = new ImageData(w, h);
+      const half=Math.floor(blockSize/2);
+      for (let y=0; y<h; y++) for (let x=0; x<w; x++) {
+        let sum=0, cnt=0;
+        for (let ky=-half; ky<=half; ky++) for (let kx=-half; kx<=half; kx++) {
+          const px=Math.min(w-1,Math.max(0,x+kx)), py=Math.min(h-1,Math.max(0,y+ky));
+          sum+=imageData.data[(py*w+px)*4]; cnt++;
+        }
+        const localMean=sum/cnt;
+        const i=(y*w+x)*4;
+        const v=imageData.data[i]>(localMean-C)?255:0;
+        out.data[i]=v; out.data[i+1]=v; out.data[i+2]=v; out.data[i+3]=255;
+      }
+      return out;
+    }
+
+    function applyBinaryThresh(imageData, w, h, threshold) {
+      const out = new ImageData(w, h);
+      for (let i=0; i<imageData.data.length; i+=4) {
+        const v=imageData.data[i]>threshold?255:0;
+        out.data[i]=v; out.data[i+1]=v; out.data[i+2]=v; out.data[i+3]=255;
+      }
+      return out;
+    }
+
+    function drawThreshLab() {
+      const w=threshCanvas.width, h=threshCanvas.height;
+      threshCtx.clearRect(0,0,w,h);
+      threshCtx.fillStyle="#fff"; threshCtx.fillRect(0,0,w,h);
+      const pW=Math.floor(w/3)-8, pH=h-60;
+      const imageData=buildBaseImageData(pW,pH);
+
+      const manualT=Number(manualThreshSlider.value);
+      const otsuT=otsuThreshold(imageData,pW,pH);
+      valueEls.manualThresh.textContent=manualT;
+
+      let result;
+      if(currentThreshMethod==="binary"){
+        result=applyBinaryThresh(imageData,pW,pH,manualT);
+        threshCtx.putImageData(result,4,30);
+        threshCtx.fillStyle="rgba(255,255,255,0.9)"; threshCtx.fillRect(4,4,pW,24);
+        threshCtx.fillStyle="#c85c3d"; threshCtx.font="bold 13px Segoe UI";
+        threshCtx.fillText(`Binary（手動 T=${manualT}）`,8,20);
+      } else if(currentThreshMethod==="otsu"){
+        result=applyBinaryThresh(imageData,pW,pH,otsuT);
+        threshCtx.putImageData(result,4,30);
+        threshCtx.fillStyle="rgba(255,255,255,0.9)"; threshCtx.fillRect(4,4,pW,24);
+        threshCtx.fillStyle="#2b7a78"; threshCtx.font="bold 13px Segoe UI";
+        threshCtx.fillText(`Otsu（自動 T=${otsuT}）`,8,20);
+      } else {
+        result=adaptiveThresh(imageData,pW,pH);
+        threshCtx.putImageData(result,4,30);
+        threshCtx.fillStyle="rgba(255,255,255,0.9)"; threshCtx.fillRect(4,4,pW,24);
+        threshCtx.fillStyle="#5555aa"; threshCtx.font="bold 13px Segoe UI";
+        threshCtx.fillText("Adaptive（局部自適應）",8,20);
+      }
+
+      // also draw all three small
+      const thinW=Math.floor((w-32)/3);
+      [[applyBinaryThresh(imageData,thinW,80,manualT),"Binary T="+manualT,"#c85c3d"],
+       [applyBinaryThresh(imageData,thinW,80,otsuT),"Otsu T="+otsuT,"#2b7a78"],
+       [adaptiveThresh(imageData,thinW,80),"Adaptive","#5555aa"]].forEach(([d,label,col],i)=>{
+        threshCtx.putImageData(d, 4+i*(thinW+8), h-90);
+        threshCtx.fillStyle=col; threshCtx.font="bold 11px Segoe UI";
+        threshCtx.fillText(label, 8+i*(thinW+8), h-96);
+      });
+
+      threshCtx.fillStyle="rgba(255,255,255,0.88)"; threshCtx.fillRect(pW+16,4,w-pW-20,24);
+      threshCtx.fillStyle="#1e2430"; threshCtx.font="13px Segoe UI";
+      threshCtx.fillText(`↓ 三種方法同場比較（下排小圖）`,pW+20,20);
+    }
+
+    // ===== LAB G: Interpolation =====
+    function drawInterpSmall(srcSize=20) {
+      // Build small synthetic source image
+      const src = new Array(srcSize*srcSize);
+      for (let y=0; y<srcSize; y++) for (let x=0; x<srcSize; x++) {
+        const dx=x-srcSize/2, dy=y-srcSize/2;
+        src[y*srcSize+x] = Math.sqrt(dx*dx+dy*dy)<srcSize/3 ? 200 : (x%4<2?80:180);
+      }
+
+      function drawScaled(canvas, method) {
+        const ctx=canvas.getContext("2d");
+        const dW=canvas.width, dH=canvas.height;
+        const scaleX=dW/srcSize, scaleY=dH/srcSize;
+        const out=new ImageData(dW,dH);
+        for (let dy=0; dy<dH; dy++) for (let dx=0; dx<dW; dx++) {
+          const sx=dx/scaleX, sy=dy/scaleY;
+          let v;
+          if(method==="nearest"){
+            const nx=Math.min(srcSize-1,Math.floor(sx)), ny=Math.min(srcSize-1,Math.floor(sy));
+            v=src[ny*srcSize+nx];
+          } else if(method==="linear"){
+            const x0=Math.min(srcSize-1,Math.floor(sx)),y0=Math.min(srcSize-1,Math.floor(sy));
+            const x1=Math.min(srcSize-1,x0+1),y1=Math.min(srcSize-1,y0+1);
+            const tx=sx-x0, ty=sy-y0;
+            v=(1-tx)*(1-ty)*src[y0*srcSize+x0]+tx*(1-ty)*src[y0*srcSize+x1]
+             +(1-tx)*ty*src[y1*srcSize+x0]+tx*ty*src[y1*srcSize+x1];
+          } else { // cubic approx
+            const x0=Math.min(srcSize-1,Math.floor(sx)),y0=Math.min(srcSize-1,Math.floor(sy));
+            const x1=Math.min(srcSize-1,x0+1),y1=Math.min(srcSize-1,y0+1);
+            const tx=sx-x0, ty=sy-y0;
+            const smooth=t=>t*t*(3-2*t);
+            v=(1-smooth(tx))*(1-smooth(ty))*src[y0*srcSize+x0]+smooth(tx)*(1-smooth(ty))*src[y0*srcSize+x1]
+             +(1-smooth(tx))*smooth(ty)*src[y1*srcSize+x0]+smooth(tx)*smooth(ty)*src[y1*srcSize+x1];
+          }
+          v=Math.max(0,Math.min(255,Math.round(v)));
+          const i=(dy*dW+dx)*4;
+          out.data[i]=v; out.data[i+1]=v; out.data[i+2]=v; out.data[i+3]=255;
+        }
+        ctx.putImageData(out,0,0);
+      }
+      drawScaled(interpNearCanvas,"nearest");
+      drawScaled(interpLinearCanvas,"linear");
+      drawScaled(interpCubicCanvas,"cubic");
+    }
+
+    // ===== EVENT LISTENERS =====
+    [rSlider,gSlider,bSlider,pixelSlider].forEach(el=>el.addEventListener("input",drawPixelLab));
+    [thresholdSlider,cannyHighSlider].forEach(el=>el.addEventListener("input",drawFilterLab));
+    [hueSlider,satSlider].forEach(el=>el.addEventListener("input",drawColorLab));
+    [rotateSlider,scaleSlider,binarySlider].forEach(el=>el.addEventListener("input",drawTransformLab));
+    manualThreshSlider.addEventListener("input",drawThreshLab);
+
+    document.querySelectorAll("#kernelChips .chip").forEach(btn=>{
+      btn.addEventListener("click",()=>{
+        document.querySelectorAll("#kernelChips .chip").forEach(c=>c.classList.remove("active"));
+        btn.classList.add("active"); currentKernel=btn.dataset.kernel;
+        const cannyHighWrap=document.getElementById("cannyHighWrap");
+        cannyHighWrap.style.display=currentKernel==="canny"?"":"none";
+        drawFilterLab();
+      });
+    });
+
+    document.querySelectorAll("#colorModeChips .chip").forEach(btn=>{
+      btn.addEventListener("click",()=>{
+        document.querySelectorAll("#colorModeChips .chip").forEach(c=>c.classList.remove("active"));
+        btn.classList.add("active"); currentColorMode=btn.dataset.colorMode; drawColorLab();
+      });
+    });
+
+    document.querySelectorAll("#morphChips .chip").forEach(btn=>{
+      btn.addEventListener("click",()=>{
+        document.querySelectorAll("#morphChips .chip").forEach(c=>c.classList.remove("active"));
+        btn.classList.add("active"); currentMorph=btn.dataset.morph; drawTransformLab();
+      });
+    });
+
+    document.querySelectorAll("#flipChips .chip").forEach(btn=>{
+      btn.addEventListener("click",()=>{
+        document.querySelectorAll("#flipChips .chip").forEach(c=>c.classList.remove("active"));
+        btn.classList.add("active"); currentFlip=Number(btn.dataset.flip); drawTransformLab();
+      });
+    });
+
+    document.querySelectorAll("#histChips .chip").forEach(btn=>{
+      btn.addEventListener("click",()=>{
+        document.querySelectorAll("#histChips .chip").forEach(c=>c.classList.remove("active"));
+        btn.classList.add("active"); currentHistMode=btn.dataset.hist; drawHistLab();
+      });
+    });
+
+    document.querySelectorAll("#threshMethodChips .chip").forEach(btn=>{
+      btn.addEventListener("click",()=>{
+        document.querySelectorAll("#threshMethodChips .chip").forEach(c=>c.classList.remove("active"));
+        btn.classList.add("active"); currentThreshMethod=btn.dataset.tmethod;
+        document.getElementById("manualThreshWrap").style.display=currentThreshMethod==="binary"?"":"none";
+        document.getElementById("otsuInfo").style.display=currentThreshMethod==="otsu"?"":"none";
+        document.getElementById("adaptiveInfo").style.display=currentThreshMethod==="adaptive"?"":"none";
+        drawThreshLab();
+      });
+    });
+
+    // ===== INIT =====
+    drawPixelLab();
+    drawFilterLab();
+    drawColorLab();
+    drawTransformLab();
+    drawHistLab();
+    drawThreshLab();
+    drawInterpSmall();
+    buildQuiz();
+  </script>
+</body>
+</html>
